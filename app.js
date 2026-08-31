@@ -735,10 +735,30 @@ class GeneticsPedigreeApp {
     const node = this.nodes.find(n => n.id === this.selectedNodeId);
     if (node) {
       node[prop] = value;
-      if (prop === 'gender' && value === 'question') {
-        if (!node.genotype) node.genotype = '?';
-        if (this.inputNodeGenotype) this.inputNodeGenotype.value = node.genotype;
+
+      if (prop === 'gender') {
+        if (value === 'question') {
+          node.genotype = '?';
+          if (this.inputNodeGenotype) this.inputNodeGenotype.value = '?';
+        } else if (value === 'male' || value === 'female') {
+          // Clear '?' genotype so node switches back to normal male square or female circle!
+          if (node.genotype === '?') {
+            node.genotype = '';
+            if (this.inputNodeGenotype) this.inputNodeGenotype.value = '';
+          }
+        }
       }
+
+      if (prop === 'genotype') {
+        if (value !== '?' && node.gender === 'question') {
+          // If user entered a non-? genotype while in question mode, switch gender out of 'question'
+          node.gender = 'female';
+          this.radioGenders.forEach(radio => {
+            radio.checked = radio.value === 'female';
+          });
+        }
+      }
+
       this.saveHistory();
       this.renderAll();
     }
