@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>유전 가계도 에디터 (Genetics Pedigree Builder)</title>
+  <!-- Google Fonts for modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Top Header & Navigation Bar -->
+    <header class="top-bar">
+      <div class="brand">
+        <i class="fa-solid fa-dna logo-icon"></i>
+        <div class="title-group">
+          <h1>유전 가계도 에디터</h1>
+          <span class="subtitle">Genetics Pedigree Designer</span>
+        </div>
+      </div>
+
+      <div class="top-tools">
+        <div class="btn-group">
+          <button id="btn-template-sample" class="btn btn-primary" title="첨부 이미지 예시 가계도 불러오기">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> 예시 가계도 불러오기
+          </button>
+          <button id="btn-clear" class="btn btn-outline" title="새 가계도">
+            <i class="fa-solid fa-file-circle-plus"></i> 새로 만들기
+          </button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="btn-group">
+          <button id="btn-undo" class="btn btn-icon" title="실행 취소 (Ctrl+Z)" disabled>
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+          <button id="btn-redo" class="btn btn-icon" title="다시 실행 (Ctrl+Y)" disabled>
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="btn-group">
+          <button id="btn-snap-grid" class="btn btn-icon active" title="격자 자석 스냅 (On/Off)">
+            <i class="fa-solid fa-border-top-left"></i>
+          </button>
+          <button id="btn-zoom-in" class="btn btn-icon" title="확대">
+            <i class="fa-solid fa-magnifying-glass-plus"></i>
+          </button>
+          <button id="btn-zoom-out" class="btn btn-icon" title="축소">
+            <i class="fa-solid fa-magnifying-glass-minus"></i>
+          </button>
+          <button id="btn-zoom-reset" class="btn btn-icon" title="화면 맞춤">
+            <i class="fa-solid fa-expand"></i>
+          </button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="btn-group">
+          <button id="btn-save-json" class="btn btn-outline" title="프로젝트 저장 (.json)">
+            <i class="fa-solid fa-floppy-disk"></i> 저장
+          </button>
+          <label id="btn-load-json-label" class="btn btn-outline" title="프로젝트 불러오기 (.json)">
+            <i class="fa-solid fa-folder-open"></i> 열기
+            <input type="file" id="btn-load-json" accept=".json" hidden>
+          </label>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-body">
+      <!-- Left Sidebar: Tools & Node Adders -->
+      <aside class="left-sidebar">
+        <div class="sidebar-section">
+          <h3><i class="fa-solid fa-shapes"></i> 인물 도형 추가</h3>
+          <div class="tool-grid">
+            <button id="tool-add-male" class="tool-card" title="남성(네모) 추가">
+              <div class="shape-preview male-preview"></div>
+              <span>남성 (Square)</span>
+            </button>
+            <button id="tool-add-female" class="tool-card" title="여성(동그라미) 추가">
+              <div class="shape-preview female-preview"></div>
+              <span>여성 (Circle)</span>
+            </button>
+            <button id="tool-add-question" class="tool-card" title="물음표(?) 기호 추가 (문제 출제용)">
+              <div class="shape-preview question-preview">?</div>
+              <span>물음표 (?)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3><i class="fa-solid fa-diagram-project"></i> 관계선 연결</h3>
+          <div class="tool-list">
+            <button id="tool-connect-spouse" class="tool-btn" title="부부(결혼선) 연결">
+              <i class="fa-solid fa-ring"></i>
+              <span>부부 선 연결</span>
+            </button>
+            <button id="tool-connect-child" class="tool-btn" title="부모-자녀 연결">
+              <i class="fa-solid fa-network-wired"></i>
+              <span>자녀 선 연결</span>
+            </button>
+            <button id="tool-select-mode" class="tool-btn active" title="선택 / 이동 모드">
+              <i class="fa-solid fa-arrow-pointer"></i>
+              <span>선택 및 이동</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="sidebar-section tip-box">
+          <h4><i class="fa-solid fa-lightbulb"></i> 꿀팁</h4>
+          <ul>
+            <li>도형의 중앙을 <strong>더블 클릭</strong>하면 유전자형을 빠르게 입력할 수 있습니다!</li>
+            <li>도형을 <strong>드래그</strong>하여 위치를 자유롭게 이동하세요.</li>
+            <li>선 연결 모드를 클릭 후 <strong>두 인물/도형</strong>을 순서대로 선택하세요.</li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Center Viewport (SVG Canvas Container) -->
+      <div id="canvas-container" class="canvas-container">
+        <!-- SVG Canvas element -->
+        <svg id="svg-canvas" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <!-- SVG Gradients matching sample image -->
+            <!-- Blue Glossy Gradient for Trait 1 / Normal -->
+            <radialGradient id="grad-blue-male" cx="30%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#a6e3ff" />
+              <stop offset="40%" stop-color="#67baf5" />
+              <stop offset="100%" stop-color="#3b8dcf" />
+            </radialGradient>
+
+            <radialGradient id="grad-blue-female" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stop-color="#b6e8ff" />
+              <stop offset="45%" stop-color="#6fc2f8" />
+              <stop offset="100%" stop-color="#3d91d6" />
+            </radialGradient>
+
+            <!-- Yellow Glossy Gradient for Trait 2 / Affected -->
+            <radialGradient id="grad-yellow-male" cx="30%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#fff8d1" />
+              <stop offset="45%" stop-color="#fce282" />
+              <stop offset="100%" stop-color="#e0b848" />
+            </radialGradient>
+
+            <radialGradient id="grad-yellow-female" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stop-color="#fff9da" />
+              <stop offset="45%" stop-color="#fce58c" />
+              <stop offset="100%" stop-color="#e3bd4d" />
+            </radialGradient>
+
+            <!-- Red Glossy Gradient -->
+            <radialGradient id="grad-red" cx="30%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#ffb8b8" />
+              <stop offset="45%" stop-color="#f86f6f" />
+              <stop offset="100%" stop-color="#d63d3d" />
+            </radialGradient>
+
+            <!-- Green Glossy Gradient -->
+            <radialGradient id="grad-green" cx="30%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#b8ffd2" />
+              <stop offset="45%" stop-color="#5be386" />
+              <stop offset="100%" stop-color="#2fb357" />
+            </radialGradient>
+
+            <!-- Purple Glossy Gradient -->
+            <radialGradient id="grad-purple" cx="30%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#e8c8ff" />
+              <stop offset="45%" stop-color="#b87bf8" />
+              <stop offset="100%" stop-color="#8d3dd6" />
+            </radialGradient>
+
+            <!-- Drop shadow filters -->
+            <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+              <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.22" />
+            </filter>
+            <filter id="selection-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#3b82f6" flood-opacity="0.8" />
+            </filter>
+          </defs>
+
+          <!-- Canvas background grid pattern -->
+          <g id="grid-group"></g>
+
+          <!-- Main graphics layer wrapped for pan & zoom -->
+          <g id="viewport-group">
+            <!-- Connection lines layer (behind nodes) -->
+            <g id="connections-group"></g>
+            <!-- Nodes layer -->
+            <g id="nodes-group"></g>
+            <!-- Legend overlay layer -->
+            <g id="legend-group"></g>
+          </g>
+        </svg>
+
+        <!-- Floating Action Banner / Mode Indicator -->
+        <div id="mode-banner" class="mode-banner hidden">
+          <span id="mode-banner-text">부부로 연결할 첫 번째 인물을 선택하세요...</span>
+          <button id="btn-cancel-mode" class="btn btn-sm btn-outline"><i class="fa-solid fa-xmark"></i> 취소</button>
+        </div>
+
+        <!-- Floating Canvas Controls -->
+        <div class="canvas-controls">
+          <label class="toggle-switch" title="격자(그리드) 표시 여부">
+            <input type="checkbox" id="toggle-grid" checked>
+            <span class="slider"></span>
+            <span class="toggle-label">격자 표시</span>
+          </label>
+          <div class="control-divider"></div>
+          <label class="toggle-switch" title="범례 표시 여부">
+            <input type="checkbox" id="toggle-legend" checked>
+            <span class="slider"></span>
+            <span class="toggle-label">범례 표시</span>
+          </label>
+        </div>
+
+        <!-- Inline Genotype Quick Editor overlay (appears on double-click) -->
+        <div id="inline-editor" class="inline-editor hidden">
+          <div class="inline-editor-header">
+            <span>유전자형 입력</span>
+            <button id="inline-close" class="btn-close-sm">&times;</button>
+          </div>
+          <input type="text" id="inline-input" placeholder="예: Tt, TT, tt, X^R X^r" autocomplete="off" spellcheck="false">
+          <div class="quick-genotype-buttons">
+            <button type="button" class="q-btn btn-question-q" data-text="?">?</button>
+            <button type="button" class="q-btn" data-text="T">T</button>
+            <button type="button" class="q-btn" data-text="t">t</button>
+            <button type="button" class="q-btn" data-text="A">A</button>
+            <button type="button" class="q-btn" data-text="a">a</button>
+            <button type="button" class="q-btn" data-text="B">B</button>
+            <button type="button" class="q-btn" data-text="b">b</button>
+            <button type="button" class="q-btn" data-text="X^R">X<sup>R</sup></button>
+            <button type="button" class="q-btn" data-text="X^r">X<sup>r</sup></button>
+            <button type="button" class="q-btn" data-text="Y">Y</button>
+          </div>
+          <div class="inline-editor-footer">
+            <button id="inline-save" class="btn btn-sm btn-primary">확인 (Enter)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Sidebar: Inspector & Legend Manager -->
+      <aside class="right-sidebar">
+        <!-- Selected Item Inspector -->
+        <div class="sidebar-section">
+          <h3><i class="fa-solid fa-sliders"></i> 속성 설정 (Inspector)</h3>
+          
+          <div id="no-selection-msg" class="empty-inspector">
+            <i class="fa-solid fa-mouse-pointer"></i>
+            <p>도형을 선택하여 속성이나 유전자형을 변경하세요.</p>
+          </div>
+
+          <div id="node-inspector" class="inspector-form hidden">
+            <div class="form-group">
+              <label for="input-node-label">번호 / 이름</label>
+              <input type="text" id="input-node-label" class="form-control" placeholder="예: 1, 2, 3 또는 이름">
+            </div>
+
+            <div class="form-group">
+              <label for="input-node-genotype">유전자형 (도형 중앙)</label>
+              <div class="input-with-button" style="display: flex; gap: 6px;">
+                <input type="text" id="input-node-genotype" class="form-control" placeholder="예: Tt, TT, tt 또는 ?">
+                <button id="btn-quick-question" class="btn btn-sm btn-outline" style="white-space: nowrap;" title="중앙에 물음표(?) 입력">
+                  <i class="fa-solid fa-question"></i> ? 입력
+                </button>
+              </div>
+              <small class="form-hint">도형의 중앙을 더블클릭해서도 입력할 수 있습니다.</small>
+            </div>
+
+            <div class="form-group">
+              <label>성별 (형태)</label>
+              <div class="gender-radio-group">
+                <label class="radio-card">
+                  <input type="radio" name="node-gender" value="male">
+                  <span class="card-content">
+                    <div class="shape-icon male"></div>
+                    남성 (Square)
+                  </span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="node-gender" value="female">
+                  <span class="card-content">
+                    <div class="shape-icon female"></div>
+                    여성 (Circle)
+                  </span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="node-gender" value="question">
+                  <span class="card-content">
+                    <div class="shape-icon question">?</div>
+                    물음표 (?)
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="select-node-phenotype">표현형 (색상 / 특성)</label>
+              <select id="select-node-phenotype" class="form-control">
+                <!-- Dynamically populated from phenotypes list -->
+              </select>
+            </div>
+
+            <div class="form-group row-btn-group">
+              <button id="btn-delete-selected" class="btn btn-danger btn-block">
+                <i class="fa-solid fa-trash"></i> 이 인물 삭제
+              </button>
+            </div>
+          </div>
+
+          <div id="connection-inspector" class="inspector-form hidden">
+            <h4>연결선 속성</h4>
+            <p id="connection-info-text">부부/자녀 연결선</p>
+            <button id="btn-delete-connection" class="btn btn-danger btn-block">
+              <i class="fa-solid fa-trash"></i> 연결선 삭제
+            </button>
+          </div>
+        </div>
+
+        <!-- Text & Font Size Controls -->
+        <div class="sidebar-section">
+          <h3><i class="fa-solid fa-text-height"></i> 글씨 크기 및 표기 설정</h3>
+          <div class="form-group">
+            <div class="flex-label">
+              <label for="input-label-font-size">이름/라벨 크기</label>
+              <span id="val-label-font-size" class="size-badge">15px</span>
+            </div>
+            <input type="range" id="input-label-font-size" min="10" max="30" value="15" class="slider-control">
+          </div>
+          <div class="form-group">
+            <div class="flex-label">
+              <label for="input-genotype-font-size">중앙 유전자형 크기</label>
+              <span id="val-genotype-font-size" class="size-badge">16px</span>
+            </div>
+            <input type="range" id="input-genotype-font-size" min="10" max="30" value="16" class="slider-control">
+          </div>
+          <div class="form-group">
+            <div class="flex-label">
+              <label for="input-gray-darkness">회색 음영 진하기 (Gray Shade)</label>
+              <span id="val-gray-darkness" class="size-badge">20%</span>
+            </div>
+            <input type="range" id="input-gray-darkness" min="10" max="90" value="20" class="slider-control">
+          </div>
+          <div class="form-group">
+            <label for="select-label-naming">기본 이름 부여 방식</label>
+            <select id="select-label-naming" class="form-control">
+              <option value="korean" selected>(가), (나), (다)... 순서 (기본)</option>
+              <option value="number">1, 2, 3... 순서</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Legend Items Custom Editor -->
+        <div class="sidebar-section">
+          <h3><i class="fa-solid fa-palette"></i> 범례 설정 및 문구 수정</h3>
+          <p class="section-desc">범례 너비 및 표시되는 4가지 항목의 문구를 직접 수정하세요.</p>
+          
+          <div class="form-group mb-3">
+            <div class="label-header">
+              <label for="input-legend-width">범례 상자 너비</label>
+              <div class="checkbox-inline">
+                <input type="checkbox" id="check-legend-auto-width" checked>
+                <label for="check-legend-auto-width">자동 맞춤</label>
+              </div>
+            </div>
+            <div class="slider-container">
+              <input type="range" id="input-legend-width" min="130" max="350" value="180" class="slider-control" disabled>
+              <span id="val-legend-width" class="slider-val">자동</span>
+            </div>
+          </div>
+          
+          <div class="legend-inputs-list">
+            <div class="legend-input-item">
+              <div class="legend-swatch female-swatch" title="흰색 동그라미 (여성)">
+                <svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="#ffffff" stroke="#1e293b" stroke-width="1.5"/></svg>
+              </div>
+              <input type="text" id="input-legend-0" class="form-control legend-text-input" value="흰색 (기본 / 정상) (여)">
+            </div>
+            
+            <div class="legend-input-item">
+              <div class="legend-swatch male-swatch" title="흰색 네모 (남성)">
+                <svg width="20" height="20"><rect x="3" y="3" width="14" height="14" rx="2" fill="#ffffff" stroke="#1e293b" stroke-width="1.5"/></svg>
+              </div>
+              <input type="text" id="input-legend-1" class="form-control legend-text-input" value="흰색 (기본 / 정상) (남)">
+            </div>
+            
+            <div class="legend-input-item">
+              <div class="legend-swatch female-gray-swatch" title="회색 동그라미 (여성)">
+                <svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="hsl(215, 10%, 80%)" class="svg-gray-swatch" stroke="#1e293b" stroke-width="1.5"/></svg>
+              </div>
+              <input type="text" id="input-legend-2" class="form-control legend-text-input" value="회색 (발현 / 유전병) (여)">
+            </div>
+            
+            <div class="legend-input-item">
+              <div class="legend-swatch male-gray-swatch" title="회색 네모 (남성)">
+                <svg width="20" height="20"><rect x="3" y="3" width="14" height="14" rx="2" fill="hsl(215, 10%, 80%)" class="svg-gray-swatch" stroke="#1e293b" stroke-width="1.5"/></svg>
+              </div>
+              <input type="text" id="input-legend-3" class="form-control legend-text-input" value="회색 (발현 / 유전병) (남)">
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Footer status bar -->
+    <footer class="footer-bar">
+      <div class="status-left">
+        <span id="status-text">준비 완료</span>
+      </div>
+      <div class="status-right">
+        <span>인물 수: <strong id="stat-node-count">0</strong></span>
+        <span class="separator">|</span>
+        <span>연결 수: <strong id="stat-conn-count">0</strong></span>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
