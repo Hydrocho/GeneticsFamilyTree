@@ -310,6 +310,15 @@
               </select>
             </div>
 
+            <div class="form-group">
+              <label for="select-node-question-style">이 인물의 물음표 표기</label>
+              <select id="select-node-question-style" class="form-control">
+                <option value="auto" selected>전체 설정 따름</option>
+                <option value="overlay">도형과 겹침 (네모/원 내부 ?)</option>
+                <option value="standalone">물음표만 단독 표시 (?만)</option>
+              </select>
+            </div>
+
             <div class="form-group row-btn-group">
               <button id="btn-delete-selected" class="btn btn-danger btn-block">
                 <i class="fa-solid fa-trash"></i> 이 인물 삭제
@@ -357,6 +366,13 @@
               <option value="number">1, 2, 3... 순서</option>
             </select>
           </div>
+          <div class="form-group">
+            <label for="select-question-style">물음표(?) 표기 방식</label>
+            <select id="select-question-style" class="form-control">
+              <option value="standalone">물음표만 단독 표시 (도형 없음)</option>
+              <option value="overlay" selected>도형(네모/원)과 겹쳐서 표시</option>
+            </select>
+          </div>
         </div>
 
         <!-- Legend Items Custom Editor -->
@@ -388,6 +404,7 @@
           
           <div class="legend-inputs-list">
             <div class="legend-input-item">
+              <input type="checkbox" id="check-legend-item-0" checked class="legend-item-checkbox" title="범례 표시 여부">
               <div class="legend-swatch female-swatch" title="흰색 동그라미 (여성)">
                 <svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="#ffffff" stroke="#1e293b" stroke-width="1.5"/></svg>
               </div>
@@ -395,6 +412,7 @@
             </div>
             
             <div class="legend-input-item">
+              <input type="checkbox" id="check-legend-item-1" checked class="legend-item-checkbox" title="범례 표시 여부">
               <div class="legend-swatch male-swatch" title="흰색 네모 (남성)">
                 <svg width="20" height="20"><rect x="3" y="3" width="14" height="14" rx="2" fill="#ffffff" stroke="#1e293b" stroke-width="1.5"/></svg>
               </div>
@@ -402,6 +420,7 @@
             </div>
             
             <div class="legend-input-item">
+              <input type="checkbox" id="check-legend-item-2" checked class="legend-item-checkbox" title="범례 표시 여부">
               <div class="legend-swatch female-gray-swatch" title="회색 동그라미 (여성)">
                 <svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="hsl(215, 10%, 80%)" class="svg-gray-swatch" stroke="#1e293b" stroke-width="1.5"/></svg>
               </div>
@@ -409,6 +428,7 @@
             </div>
             
             <div class="legend-input-item">
+              <input type="checkbox" id="check-legend-item-3" checked class="legend-item-checkbox" title="범례 표시 여부">
               <div class="legend-swatch male-gray-swatch" title="회색 네모 (남성)">
                 <svg width="20" height="20"><rect x="3" y="3" width="14" height="14" rx="2" fill="hsl(215, 10%, 80%)" class="svg-gray-swatch" stroke="#1e293b" stroke-width="1.5"/></svg>
               </div>

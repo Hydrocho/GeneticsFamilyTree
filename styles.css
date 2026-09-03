@@ -963,7 +963,19 @@ body, html {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   padding: 4px 8px;
-  transition: border-color 0.15s;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.legend-input-item.unchecked {
+  opacity: 0.45;
+}
+
+.legend-item-checkbox {
+  cursor: pointer;
+  accent-color: var(--primary-color);
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
 }
 
 .legend-input-item:focus-within {
