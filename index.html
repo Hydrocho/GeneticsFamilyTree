@@ -362,8 +362,16 @@
         <!-- Legend Items Custom Editor -->
         <div class="sidebar-section">
           <h3><i class="fa-solid fa-palette"></i> 범례 설정 및 문구 수정</h3>
-          <p class="section-desc">범례 너비 및 표시되는 4가지 항목의 문구를 직접 수정하세요.</p>
+          <p class="section-desc">범례 배치 및 표시되는 4가지 항목의 문구를 직접 수정하세요.</p>
           
+          <div class="form-group mb-3">
+            <label for="select-legend-layout">범례 배치 방식</label>
+            <select id="select-legend-layout" class="form-control">
+              <option value="2col" selected>2열 배치 (왼쪽 2개 / 오른쪽 2개, 2줄)</option>
+              <option value="1col">1열 세로 배치 (4줄)</option>
+            </select>
+          </div>
+
           <div class="form-group mb-3">
             <div class="label-header">
               <label for="input-legend-width">범례 상자 너비</label>
@@ -373,7 +381,7 @@
               </div>
             </div>
             <div class="slider-container">
-              <input type="range" id="input-legend-width" min="130" max="350" value="180" class="slider-control" disabled>
+              <input type="range" id="input-legend-width" min="130" max="500" value="340" class="slider-control" disabled>
               <span id="val-legend-width" class="slider-val">자동</span>
             </div>
           </div>

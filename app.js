@@ -50,6 +50,7 @@ class GeneticsPedigreeApp {
     this.legendDragOffset = { x: 0, y: 0 };
     this.legendAutoWidth = true;
     this.legendWidth = 180;
+    this.legendLayout = '2col'; // '2col' (left 2, right 2, 2 rows) or '1col' (vertical 4 rows)
     this.legendTexts = [
       '흰색 (기본 / 정상) (여)',
       '흰색 (기본 / 정상) (남)',
@@ -96,6 +97,7 @@ class GeneticsPedigreeApp {
     this.selectLabelNaming = document.getElementById('select-label-naming');
     this.inputGrayDarkness = document.getElementById('input-gray-darkness');
     this.valGrayDarkness = document.getElementById('val-gray-darkness');
+    this.selectLegendLayout = document.getElementById('select-legend-layout');
     this.checkLegendAutoWidth = document.getElementById('check-legend-auto-width');
     this.inputLegendWidth = document.getElementById('input-legend-width');
     this.valLegendWidth = document.getElementById('val-legend-width');
@@ -174,6 +176,9 @@ class GeneticsPedigreeApp {
         input.value = this.legendTexts[i];
       }
     }
+    if (this.selectLegendLayout) {
+      this.selectLegendLayout.value = this.legendLayout || '2col';
+    }
     if (this.checkLegendAutoWidth) {
       this.checkLegendAutoWidth.checked = !!this.legendAutoWidth;
     }
@@ -193,6 +198,7 @@ class GeneticsPedigreeApp {
       phenotypes: this.phenotypes,
       legendPos: this.legendPos,
       legendTexts: this.legendTexts,
+      legendLayout: this.legendLayout,
       legendAutoWidth: this.legendAutoWidth,
       legendWidth: this.legendWidth
     });
@@ -215,6 +221,7 @@ class GeneticsPedigreeApp {
     this.phenotypes = prevState.phenotypes;
     if (prevState.legendPos !== undefined) this.legendPos = prevState.legendPos;
     if (prevState.legendTexts !== undefined) this.legendTexts = prevState.legendTexts;
+    if (prevState.legendLayout !== undefined) this.legendLayout = prevState.legendLayout;
     if (prevState.legendAutoWidth !== undefined) this.legendAutoWidth = prevState.legendAutoWidth;
     if (prevState.legendWidth !== undefined) this.legendWidth = prevState.legendWidth;
     this.syncLegendInputs();
@@ -234,6 +241,7 @@ class GeneticsPedigreeApp {
     this.phenotypes = parsed.phenotypes;
     if (parsed.legendPos !== undefined) this.legendPos = parsed.legendPos;
     if (parsed.legendTexts !== undefined) this.legendTexts = parsed.legendTexts;
+    if (parsed.legendLayout !== undefined) this.legendLayout = parsed.legendLayout;
     if (parsed.legendAutoWidth !== undefined) this.legendAutoWidth = parsed.legendAutoWidth;
     if (parsed.legendWidth !== undefined) this.legendWidth = parsed.legendWidth;
     this.syncLegendInputs();
@@ -373,6 +381,14 @@ class GeneticsPedigreeApp {
           el.setAttribute('fill', grayColor);
         });
         this.renderAll();
+      });
+    }
+
+    if (this.selectLegendLayout) {
+      this.selectLegendLayout.addEventListener('change', (e) => {
+        this.legendLayout = e.target.value;
+        this.saveHistory();
+        this.renderLegend();
       });
     }
 
@@ -1164,19 +1180,43 @@ class GeneticsPedigreeApp {
     ];
 
     let legendWidth;
-    if (this.legendAutoWidth) {
-      let maxTextPixelWidth = 70;
-      legendItems.forEach(item => {
-        const w = this.getTextWidth(item.label);
-        if (w > maxTextPixelWidth) maxTextPixelWidth = w;
-      });
-      // Icon offset (48px) + max text pixel width + right padding (20px)
-      legendWidth = Math.max(130, Math.ceil(48 + maxTextPixelWidth + 20));
-    } else {
-      legendWidth = this.legendWidth || 180;
-    }
+    let legendHeight;
+    let col1Width = 140;
 
-    const legendHeight = (legendItems.length * 32) + 16;
+    if (this.legendLayout === '2col') {
+      const maxLeftTextWidth = Math.max(
+        this.getTextWidth(legendItems[0].label),
+        this.getTextWidth(legendItems[1].label)
+      );
+      const maxRightTextWidth = Math.max(
+        this.getTextWidth(legendItems[2].label),
+        this.getTextWidth(legendItems[3].label)
+      );
+
+      col1Width = Math.max(120, Math.ceil(48 + maxLeftTextWidth + 20));
+      const col2Width = Math.max(120, Math.ceil(48 + maxRightTextWidth + 20));
+
+      if (this.legendAutoWidth) {
+        legendWidth = col1Width + col2Width;
+      } else {
+        const manualW = this.legendWidth || 340;
+        legendWidth = Math.max(col1Width + col2Width, manualW);
+        col1Width = Math.max(col1Width, Math.floor(legendWidth / 2));
+      }
+      legendHeight = (2 * 32) + 16;
+    } else {
+      if (this.legendAutoWidth) {
+        let maxTextPixelWidth = 70;
+        legendItems.forEach(item => {
+          const w = this.getTextWidth(item.label);
+          if (w > maxTextPixelWidth) maxTextPixelWidth = w;
+        });
+        legendWidth = Math.max(130, Math.ceil(48 + maxTextPixelWidth + 20));
+      } else {
+        legendWidth = this.legendWidth || 180;
+      }
+      legendHeight = (legendItems.length * 32) + 16;
+    }
 
     // Background card for legend
     const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -1188,12 +1228,22 @@ class GeneticsPedigreeApp {
     this.legendGroup.appendChild(bgRect);
 
     legendItems.forEach((item, index) => {
-      const itemY = legendY + 24 + (index * 32);
+      let itemX = legendX;
+      let itemY;
+
+      if (this.legendLayout === '2col') {
+        const col = Math.floor(index / 2);
+        const row = index % 2;
+        itemX = legendX + (col * col1Width);
+        itemY = legendY + 24 + (row * 32);
+      } else {
+        itemY = legendY + 24 + (index * 32);
+      }
 
       // Icon shape
       if (item.gender === 'male') {
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rect.setAttribute('x', legendX + 16);
+        rect.setAttribute('x', itemX + 16);
         rect.setAttribute('y', itemY - 10);
         rect.setAttribute('width', '20');
         rect.setAttribute('height', '20');
@@ -1205,7 +1255,7 @@ class GeneticsPedigreeApp {
         this.legendGroup.appendChild(rect);
       } else {
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', legendX + 26);
+        circle.setAttribute('cx', itemX + 26);
         circle.setAttribute('cy', itemY);
         circle.setAttribute('r', '10');
         circle.setAttribute('fill', item.fill);
@@ -1216,7 +1266,7 @@ class GeneticsPedigreeApp {
 
       // Legend Label Text
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', legendX + 48);
+      text.setAttribute('x', itemX + 48);
       text.setAttribute('y', itemY + 4);
       text.setAttribute('class', 'legend-text');
       text.textContent = item.label;
@@ -1413,6 +1463,7 @@ class GeneticsPedigreeApp {
       phenotypes: this.phenotypes,
       legendPos: this.legendPos,
       legendTexts: this.legendTexts,
+      legendLayout: this.legendLayout,
       legendAutoWidth: this.legendAutoWidth,
       legendWidth: this.legendWidth
     };
@@ -1442,6 +1493,7 @@ class GeneticsPedigreeApp {
           if (parsed.phenotypes) this.phenotypes = parsed.phenotypes;
           if (parsed.legendPos !== undefined) this.legendPos = parsed.legendPos;
           if (parsed.legendTexts !== undefined) this.legendTexts = parsed.legendTexts;
+          if (parsed.legendLayout !== undefined) this.legendLayout = parsed.legendLayout;
           if (parsed.legendAutoWidth !== undefined) this.legendAutoWidth = parsed.legendAutoWidth;
           if (parsed.legendWidth !== undefined) this.legendWidth = parsed.legendWidth;
           this.syncLegendInputs();
