@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>유전 가계도 유전자형 추론 퀴즈 (Genetics Pedigree Quiz)</title>
+  <!-- Google Fonts for modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="quiz-page">
+  <div id="app" class="app-container">
+    <!-- Top Header & Trait Selector Bar -->
+    <header class="top-bar quiz-top-bar">
+      <div class="brand">
+        <i class="fa-solid fa-dna logo-icon"></i>
+        <div class="title-group">
+          <h1>유전 가계도 퀴즈</h1>
+          <span class="subtitle">Genetics Pedigree Quiz App</span>
+        </div>
+      </div>
+
+      <!-- Trait Selection Tabs -->
+      <div class="quiz-tabs-container header-tabs">
+        <button class="quiz-trait-tab active" data-trait="double_eyelid">
+          <i class="fa-solid fa-eye"></i> 쌍꺼풀 유전 (상염색체)
+        </button>
+        <button class="quiz-trait-tab" data-trait="blood_type">
+          <i class="fa-solid fa-droplet"></i> ABO 혈액형 유전 (복대립)
+        </button>
+        <button class="quiz-trait-tab" data-trait="color_blindness">
+          <i class="fa-solid fa-eye-low-vision"></i> 적록 색맹 유전 (반성 열성)
+        </button>
+      </div>
+
+      <div class="top-tools">
+        <button id="btn-quiz-generate" class="btn btn-primary btn-quiz-glow">
+          <i class="fa-solid fa-rotate"></i> 🎲 새로운 문제 생성
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Quiz Workspace -->
+    <main class="main-body quiz-main-body">
+      <!-- Left: Pedigree SVG Stage Canvas -->
+      <div id="canvas-container" class="canvas-container quiz-canvas-container">
+        <svg id="quiz-canvas" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <!-- Drop shadow filters -->
+            <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+              <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.22" />
+            </filter>
+            <filter id="selection-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#3b82f6" flood-opacity="0.8" />
+            </filter>
+          </defs>
+          <g id="viewport-group">
+            <g id="connections-group"></g>
+            <g id="nodes-group"></g>
+            <g id="legend-group"></g>
+          </g>
+        </svg>
+
+        <!-- Floating zoom control tools -->
+        <div class="canvas-zoom-tools">
+          <button id="btn-quiz-zoom-in" class="btn-zoom-sm" title="확대 (+)"><i class="fa-solid fa-plus"></i></button>
+          <button id="btn-quiz-zoom-out" class="btn-zoom-sm" title="축소 (-)"><i class="fa-solid fa-minus"></i></button>
+          <button id="btn-quiz-zoom-reset" class="btn-zoom-sm" title="원래 크기 (100%)"><i class="fa-solid fa-rotate-left"></i></button>
+          <span id="val-quiz-zoom" class="zoom-badge">100%</span>
+        </div>
+
+        <!-- Floating Score / Progress Badge in Top-Right Corner -->
+        <div class="quiz-score-badge" title="맞춘 유전자형 개수">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>정답: <strong id="val-quiz-score">0</strong> / <span id="val-quiz-total">8</span></span>
+        </div>
+
+        <!-- Floating helper badge -->
+        <div class="quiz-canvas-tip">
+          <i class="fa-solid fa-lightbulb"></i> 가계도 인물을 클릭하여 정답을 입력하세요. <b>(마우스 휠로 확대/축소 가능)</b>
+        </div>
+      </div>
+
+      <!-- Right: Quiz Interaction Side Panel -->
+      <aside id="quiz-panel" class="quiz-panel quiz-standalone-panel">
+        <div class="quiz-panel-header">
+          <div class="quiz-header-title">
+            <i class="fa-solid fa-clipboard-question logo-icon"></i>
+            <div>
+              <h3>유전자형 추론 풀이</h3>
+              <p>인물을 선택하고 유전자형을 입력하세요</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz-panel-body">
+          <!-- Trait Info Banner -->
+          <div class="quiz-info-card">
+            <h4 id="quiz-info-title">쌍꺼풀 유전 추론 (상염색체 우성/열성)</h4>
+            <p id="quiz-info-desc">가계도의 각 인물을 선택하고 유전자형을 입력한 뒤 정답을 확인하세요.</p>
+          </div>
+
+
+          <!-- Selected Person Quiz Card -->
+          <div id="quiz-selected-card" class="quiz-selected-card">
+            <!-- Dynamically populated when a person is selected -->
+          </div>
+
+          <!-- Result Score Banner -->
+          <div id="quiz-result-banner" class="quiz-result-banner hidden"></div>
+
+          <!-- Explanation Box -->
+          <div id="quiz-explanation-box" class="quiz-explanation-box hidden">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+
+      </aside>
+    </main>
+
+    <!-- Footer status bar -->
+    <footer class="footer-bar">
+      <div class="status-left">
+        <span id="status-text">퀴즈 가계도가 준비되었습니다.</span>
+      </div>
+      <div class="status-right">
+        <span>인물 수: <strong>8명</strong></span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Quiz Completion Celebration / Try-Again Modal -->
+  <div id="quiz-completion-modal" class="modal-overlay hidden">
+    <canvas id="quiz-confetti-canvas" class="confetti-canvas"></canvas>
+    <div class="modal-card quiz-completion-card">
+      <button id="btn-modal-x-close" class="quiz-modal-x-btn" title="닫기">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div id="quiz-modal-header" class="quiz-modal-header success">
+        <div class="modal-icon-glow">
+          <i id="quiz-modal-icon" class="fa-solid fa-trophy"></i>
+        </div>
+        <h2 id="quiz-modal-title">🏆 만점 달성! 축하합니다!</h2>
+        <p id="quiz-modal-subtitle">모든 인물의 유전자형을 완벽하게 추론했습니다!</p>
+      </div>
+
+      <div class="modal-body quiz-modal-body">
+        <div class="quiz-modal-score-box">
+          <span class="score-label">최종 성적</span>
+          <div class="score-value-row">
+            <strong id="quiz-modal-score-num">8</strong>
+            <span class="score-divider">/</span>
+            <span id="quiz-modal-total-num">8</span>
+            <span class="score-unit">명 정답</span>
+          </div>
+        </div>
+        <p id="quiz-modal-desc" class="modal-desc-text">
+          멘델 및 성염색체 유전 법칙을 명확히 이해하고 계시네요.
+        </p>
+      </div>
+
+      <div class="modal-footer quiz-modal-footer">
+        <button id="btn-modal-retry" class="btn btn-primary btn-block btn-quiz-glow">
+          <i class="fa-solid fa-rotate"></i> 🎲 새로운 문제 도전하기
+        </button>
+        <button id="btn-modal-close" class="btn btn-outline btn-block">
+          <i class="fa-solid fa-xmark"></i> 닫기 (가계도 해설 확인)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="quiz.js"></script>
+</body>
+</html>

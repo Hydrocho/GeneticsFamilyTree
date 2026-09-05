@@ -168,8 +168,7 @@ class GeneticsPedigreeApp {
     // Exam Paper White & Gray Phenotypes (흰색과 회색 기본값)
     this.phenotypes = [
       { id: 'trait-white', name: '흰색 (기본 / 정상)', color: '#ffffff', fillMale: '#ffffff', fillFemale: '#ffffff' },
-      { id: 'trait-gray', name: '회색 (발현 / 유전병)', color: grayColor, fillMale: grayColor, fillFemale: grayColor },
-      { id: 'trait-black', name: '검은색 (완전 채움)', color: '#1e293b', fillMale: '#1e293b', fillFemale: '#1e293b' }
+      { id: 'trait-gray', name: '회색 (발현 / 유전병)', color: grayColor, fillMale: grayColor, fillFemale: grayColor }
     ];
   }
 
@@ -743,6 +742,9 @@ class GeneticsPedigreeApp {
     this.selectedConnectionId = null;
     this.updateInspector();
     this.renderAll();
+    if (window.quizEngine && typeof window.quizEngine.highlightNodeInput === 'function') {
+      window.quizEngine.highlightNodeInput(id);
+    }
   }
 
   selectConnection(id) {
