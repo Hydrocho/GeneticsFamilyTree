@@ -1854,15 +1854,16 @@ body, html {
   border-radius: var(--radius-md);
 }
 
+#quiz-canvas {
+  touch-action: none;
+}
+
 .legend-swatch-icon {
-  font-size: 20px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid #1e293b;
+  width: 30px;
+  height: 30px;
+  border: 2px solid #1e293b;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .legend-swatch-icon.female {
@@ -1870,17 +1871,15 @@ body, html {
 }
 
 .legend-swatch-icon.male {
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .legend-swatch-icon.white {
   background: #ffffff;
-  color: #1e293b;
 }
 
 .legend-swatch-icon.gray {
   background: hsl(215, 10%, 80%);
-  color: #1e293b;
 }
 
 .legend-swatch-info {

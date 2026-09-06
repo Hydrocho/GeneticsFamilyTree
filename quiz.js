@@ -12,6 +12,7 @@ class GeneticsQuizEngine {
     this.userAnswers = {};
     this.initUIElements();
     this.bindEvents();
+    this.generateNewQuiz();
   }
 
   initUIElements() {
@@ -236,6 +237,39 @@ class GeneticsQuizEngine {
       svgCanvas.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e.target, e));
       window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
       window.addEventListener('mouseup', endDrag);
+
+      // 3. Mobile Touch Drag Panning (캔버스 드래그 이동)
+      let isTouchDragging = false;
+      let touchStartPos = { x: 0, y: 0 };
+      let touchStartPan = { x: 0, y: 0 };
+
+      svgCanvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          isTouchDragging = true;
+          const touch = e.touches[0];
+          touchStartPos = { x: touch.clientX, y: touch.clientY };
+          touchStartPan = { x: this.panX, y: this.panY };
+        }
+      }, { passive: true });
+
+      svgCanvas.addEventListener('touchmove', (e) => {
+        if (isTouchDragging && e.touches.length === 1) {
+          const touch = e.touches[0];
+          const dx = touch.clientX - touchStartPos.x;
+          const dy = touch.clientY - touchStartPos.y;
+
+          if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+            if (e.cancelable) e.preventDefault();
+            this.panX = touchStartPan.x + dx;
+            this.panY = touchStartPan.y + dy;
+            this.applyTransform();
+          }
+        }
+      }, { passive: false });
+
+      svgCanvas.addEventListener('touchend', () => {
+        isTouchDragging = false;
+      }, { passive: true });
     }
 
     window.addEventListener('resize', () => {
@@ -698,87 +732,87 @@ class GeneticsQuizEngine {
     if (!content) return;
 
     if (this.selectedTrait === 'double_eyelid') {
-      if (titleEl) titleEl.textContent = '📖 쌍꺼풀 유전 범례 (상염색체 우성)';
-      if (subEl) subEl.textContent = '쌍꺼풀 대립 유전자(E)는 외꺼풀(e)에 대해 우성입니다';
+      if (titleEl) titleEl.textContent = '📖 쌍꺼풀 유전 범례 (상염색체)';
+      if (subEl) subEl.textContent = '가계도 도형 및 색상별 특징 안내';
       content.innerHTML = `
         <div class="legend-swatch-item">
-          <div class="legend-swatch-icon female white">●</div>
+          <div class="legend-swatch-icon female white"></div>
           <div class="legend-swatch-info">
             <strong>흰색 동그라미 (여성)</strong>
-            <span>쌍꺼풀 표현형 (유전자형: <strong>EE</strong> 또는 <strong>Ee</strong>)</span>
+            <span>쌍꺼풀이 있는 여성</span>
           </div>
         </div>
         <div class="legend-swatch-item">
-          <div class="legend-swatch-icon male white">■</div>
+          <div class="legend-swatch-icon male white"></div>
           <div class="legend-swatch-info">
             <strong>흰색 네모 (남성)</strong>
-            <span>쌍꺼풀 표현형 (유전자형: <strong>EE</strong> 또는 <strong>Ee</strong>)</span>
+            <span>쌍꺼풀이 있는 남성</span>
           </div>
         </div>
         <div class="legend-swatch-item">
-          <div class="legend-swatch-icon female gray">●</div>
+          <div class="legend-swatch-icon female gray"></div>
           <div class="legend-swatch-info">
             <strong>회색 동그라미 (여성)</strong>
-            <span>외꺼풀 표현형 (유전자형: <strong>ee</strong> 열성 동형)</span>
+            <span>쌍꺼풀이 없는(외꺼풀) 여성</span>
           </div>
         </div>
         <div class="legend-swatch-item">
-          <div class="legend-swatch-icon male gray">■</div>
+          <div class="legend-swatch-icon male gray"></div>
           <div class="legend-swatch-info">
             <strong>회색 네모 (남성)</strong>
-            <span>외꺼풀 표현형 (유전자형: <strong>ee</strong> 열성 동형)</span>
+            <span>쌍꺼풀이 없는(외꺼풀) 남성</span>
           </div>
         </div>
       `;
     } else if (this.selectedTrait === 'blood_type') {
       if (titleEl) titleEl.textContent = '📖 ABO 혈액형 유전 범례 (복대립)';
-      if (subEl) subEl.textContent = '대립 유전자 A, B는 우성이며 O에 대해 우성입니다';
+      if (subEl) subEl.textContent = '가계도 성별 도형 및 표현형 안내';
       content.innerHTML = `
         <div class="legend-swatch-item">
-          <div class="legend-swatch-icon female white">●</div>
+          <div class="legend-swatch-icon female white"></div>
           <div class="legend-swatch-info">
             <strong>동그라미 노드 (여성)</strong>
-            <span>도형 내 표현형(A형, B형, AB형, O형) 문구가 중앙에 표기됩니다</span>
+            <span>여성 (도형 중앙에 해당 혈액형 표기)</span>
           </div>
         </div>
         <div class="legend-swatch-item">
-          <div class="legend-swatch-icon male white">■</div>
+          <div class="legend-swatch-icon male white"></div>
           <div class="legend-swatch-info">
             <strong>네모 노드 (남성)</strong>
-            <span>도형 내 표현형(A형, B형, AB형, O형) 문구가 중앙에 표기됩니다</span>
+            <span>남성 (도형 중앙에 해당 혈액형 표기)</span>
           </div>
         </div>
       `;
     } else if (this.selectedTrait === 'color_blindness') {
       if (titleEl) titleEl.textContent = '📖 적록 색맹 유전 범례 (반성 열성)';
-      if (subEl) subEl.textContent = '색맹 유전자(X\')는 성염색체 X 상의 열성 유전입니다';
+      if (subEl) subEl.textContent = '가계도 도형 및 색상별 특징 안내';
       content.innerHTML = `
         <div class="legend-swatch-item">
-          <div class="legend-swatch-icon female white">●</div>
+          <div class="legend-swatch-icon female white"></div>
           <div class="legend-swatch-info">
             <strong>흰색 동그라미 (여성)</strong>
-            <span>정상 또는 보인자 표현형 (유전자형: <strong>XX</strong> 또는 <strong>XX'</strong>)</span>
+            <span>정상 (또는 보인자) 여성</span>
           </div>
         </div>
         <div class="legend-swatch-item">
-          <div class="legend-swatch-icon male white">■</div>
+          <div class="legend-swatch-icon male white"></div>
           <div class="legend-swatch-info">
             <strong>흰색 네모 (남성)</strong>
-            <span>정상 표현형 (유전자형: <strong>XY</strong>)</span>
+            <span>정상 남성</span>
           </div>
         </div>
         <div class="legend-swatch-item">
-          <div class="legend-swatch-icon female gray">●</div>
+          <div class="legend-swatch-icon female gray"></div>
           <div class="legend-swatch-info">
             <strong>회색 동그라미 (여성)</strong>
-            <span>적록 색맹 발현자 (유전자형: <strong>X'X'</strong>)</span>
+            <span>적록 색맹인 여성</span>
           </div>
         </div>
         <div class="legend-swatch-item">
-          <div class="legend-swatch-icon male gray">■</div>
+          <div class="legend-swatch-icon male gray"></div>
           <div class="legend-swatch-info">
             <strong>회색 네모 (남성)</strong>
-            <span>적록 색맹 발현자 (유전자형: <strong>X'Y</strong>)</span>
+            <span>적록 색맹인 남성</span>
           </div>
         </div>
       `;
