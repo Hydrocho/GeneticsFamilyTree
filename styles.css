@@ -1788,6 +1788,118 @@ body, html {
   text-align: center;
 }
 
+/* Floating Legend Modal Trigger Button in Bottom-Right of Canvas Stage */
+.btn-legend-modal-trigger {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-legend-modal-trigger:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.2);
+}
+
+/* Legend Modal Specific Styles */
+.quiz-legend-card {
+  max-width: 460px;
+  width: 90%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  background: #ffffff;
+  animation: modalPopIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  z-index: 10002;
+}
+
+.quiz-modal-header.legend-header {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.quiz-legend-body {
+  padding: 16px 20px;
+}
+
+.legend-swatch-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.legend-swatch-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.legend-swatch-icon {
+  font-size: 20px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #1e293b;
+  flex-shrink: 0;
+}
+
+.legend-swatch-icon.female {
+  border-radius: 50%;
+}
+
+.legend-swatch-icon.male {
+  border-radius: 6px;
+}
+
+.legend-swatch-icon.white {
+  background: #ffffff;
+  color: #1e293b;
+}
+
+.legend-swatch-icon.gray {
+  background: hsl(215, 10%, 80%);
+  color: #1e293b;
+}
+
+.legend-swatch-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.legend-swatch-info strong {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.legend-swatch-info span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 /* Quiz Completion Modal & Confetti Canvas */
 .modal-overlay {
   position: fixed;
@@ -2076,6 +2188,14 @@ body, html {
     padding: 4px 10px;
     font-size: 12px;
     border-radius: 20px;
+  }
+
+  /* Floating Legend Button on Mobile Canvas */
+  .btn-legend-modal-trigger {
+    bottom: 8px;
+    right: 8px;
+    padding: 5px 12px;
+    font-size: 12px;
   }
 
   /* Canvas Zoom Tools on Mobile */

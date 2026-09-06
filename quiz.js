@@ -174,7 +174,27 @@ class GeneticsQuizEngine {
       });
     }
 
-    // Mouse Wheel Zoom & Drag Handlers (Mouse & Touch)
+    // Legend Modal buttons
+    const btnLegendTrigger = document.getElementById('btn-quiz-legend-trigger');
+    const btnLegendX = document.getElementById('btn-legend-modal-x');
+    const btnLegendClose = document.getElementById('btn-legend-modal-close');
+    const legendModal = document.getElementById('quiz-legend-modal');
+
+    if (btnLegendTrigger) {
+      btnLegendTrigger.addEventListener('click', () => this.openLegendModal());
+    }
+    if (btnLegendX) {
+      btnLegendX.addEventListener('click', () => {
+        if (legendModal) legendModal.classList.add('hidden');
+      });
+    }
+    if (btnLegendClose) {
+      btnLegendClose.addEventListener('click', () => {
+        if (legendModal) legendModal.classList.add('hidden');
+      });
+    }
+
+    // Mouse Wheel Zoom & Mouse Drag Handlers (Desktop)
     const svgCanvas = document.getElementById('quiz-canvas');
     if (svgCanvas) {
       // 1. Mouse wheel zoom
@@ -193,19 +213,8 @@ class GeneticsQuizEngine {
         this.updateZoomBadge();
       }, { passive: false });
 
-      // 2. Legend Dragging & Background Panning
+      // 2. Desktop Mouse Dragging
       const startDrag = (clientX, clientY, target, e) => {
-        const legendGroup = document.getElementById('legend-group');
-        if (legendGroup && legendGroup.contains(target)) {
-          this.isDraggingLegend = true;
-          this.dragStartPos = { x: clientX, y: clientY };
-          this.dragStartLegendPos = { ...this.legendPos };
-          legendGroup.setAttribute('cursor', 'grabbing');
-          if (e && e.stopPropagation) e.stopPropagation();
-          return;
-        }
-
-        // Empty canvas click -> pan viewport
         if (target === svgCanvas || target.id === 'viewport-group' || target.tagName === 'svg') {
           this.isPanningCanvas = true;
           this.startPanPos = { x: clientX - this.panX, y: clientY - this.panY };
@@ -213,15 +222,7 @@ class GeneticsQuizEngine {
       };
 
       const moveDrag = (clientX, clientY) => {
-        if (this.isDraggingLegend) {
-          const dx = (clientX - this.dragStartPos.x) / this.scale;
-          const dy = (clientY - this.dragStartPos.y) / this.scale;
-          this.legendPos = {
-            x: Math.max(10, this.dragStartLegendPos.x + dx),
-            y: Math.max(10, this.dragStartLegendPos.y + dy)
-          };
-          this.renderStandaloneCanvas(this.currentQuiz);
-        } else if (this.isPanningCanvas) {
+        if (this.isPanningCanvas) {
           this.panX = clientX - this.startPanPos.x;
           this.panY = clientY - this.startPanPos.y;
           this.applyTransform();
@@ -229,33 +230,12 @@ class GeneticsQuizEngine {
       };
 
       const endDrag = () => {
-        if (this.isDraggingLegend) {
-          this.isDraggingLegend = false;
-          const legendGroup = document.getElementById('legend-group');
-          if (legendGroup) {
-            legendGroup.setAttribute('cursor', 'grab');
-          }
-        }
         this.isPanningCanvas = false;
       };
 
       svgCanvas.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e.target, e));
       window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
       window.addEventListener('mouseup', endDrag);
-
-      svgCanvas.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) {
-          startDrag(e.touches[0].clientX, e.touches[0].clientY, e.target, e);
-        }
-      }, { passive: true });
-
-      window.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 1) {
-          moveDrag(e.touches[0].clientX, e.touches[0].clientY);
-        }
-      }, { passive: true });
-
-      window.addEventListener('touchend', endDrag);
     }
 
     window.addEventListener('resize', () => {
@@ -700,80 +680,109 @@ class GeneticsQuizEngine {
       nodesGroup.appendChild(g);
     });
 
-    // 3. Draw Legend Box (Draggable) - 혈액형 퀴즈에서는 범례를 표시하지 않음
-    if (quizData.traitType === 'blood_type') {
-      this.applyTransform();
-      return;
-    }
-
-    const legendX = this.legendPos ? this.legendPos.x : 500;
-    const legendY = this.legendPos ? this.legendPos.y : 320;
-    const legendTexts = quizData.legendTexts || [];
-
-    legendGroup.setAttribute('cursor', this.isDraggingLegend ? 'grabbing' : 'grab');
-
-    const legendBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    legendBg.setAttribute('x', legendX);
-    legendBg.setAttribute('y', legendY);
-    legendBg.setAttribute('width', '270');
-    legendBg.setAttribute('height', '135');
-    legendBg.setAttribute('rx', '8');
-    legendBg.setAttribute('fill', 'rgba(255, 255, 255, 0.95)');
-    legendBg.setAttribute('stroke', '#cbd5e1');
-    legendBg.setAttribute('stroke-width', '1.5');
-    legendBg.setAttribute('filter', 'url(#shadow)');
-    legendGroup.appendChild(legendBg);
-
-    const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    title.setAttribute('x', legendX + 14);
-    title.setAttribute('y', legendY + 24);
-    title.setAttribute('font-size', '13');
-    title.setAttribute('font-weight', '700');
-    title.setAttribute('fill', '#1e293b');
-    title.textContent = '■ 범례 (드래그하여 위치 이동)';
-    legendGroup.appendChild(title);
-
-    const swatches = [
-      { gender: 'female', fill: '#ffffff', text: legendTexts[0] || '' },
-      { gender: 'male', fill: '#ffffff', text: legendTexts[1] || '' },
-      { gender: 'female', fill: 'hsl(215, 10%, 80%)', text: legendTexts[2] || '' },
-      { gender: 'male', fill: 'hsl(215, 10%, 80%)', text: legendTexts[3] || '' }
-    ];
-
-    swatches.forEach((sw, i) => {
-      const iy = legendY + 48 + (i * 20);
-      if (sw.gender === 'male') {
-        const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        r.setAttribute('x', legendX + 14);
-        r.setAttribute('y', iy - 10);
-        r.setAttribute('width', '14');
-        r.setAttribute('height', '14');
-        r.setAttribute('rx', '2');
-        r.setAttribute('fill', sw.fill);
-        r.setAttribute('stroke', '#1e293b');
-        r.setAttribute('stroke-width', '1.5');
-        legendGroup.appendChild(r);
-      } else {
-        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        c.setAttribute('cx', legendX + 21);
-        c.setAttribute('cy', iy - 3);
-        c.setAttribute('r', '7');
-        c.setAttribute('fill', sw.fill);
-        c.setAttribute('stroke', '#1e293b');
-        c.setAttribute('stroke-width', '1.5');
-        legendGroup.appendChild(c);
-      }
-
-      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      t.setAttribute('x', legendX + 36);
-      t.setAttribute('y', iy + 1);
-      t.setAttribute('font-size', '11');
-      t.setAttribute('fill', '#334155');
-      t.textContent = sw.text;
-      legendGroup.appendChild(t);
-    });
-
+    if (legendGroup) legendGroup.innerHTML = '';
     this.applyTransform();
+  }
+
+  openLegendModal() {
+    const modal = document.getElementById('quiz-legend-modal');
+    if (!modal) return;
+    this.renderLegendModalContent();
+    modal.classList.remove('hidden');
+  }
+
+  renderLegendModalContent() {
+    const content = document.getElementById('legend-modal-content');
+    const titleEl = document.getElementById('legend-modal-title');
+    const subEl = document.getElementById('legend-modal-subtitle');
+    if (!content) return;
+
+    if (this.selectedTrait === 'double_eyelid') {
+      if (titleEl) titleEl.textContent = '📖 쌍꺼풀 유전 범례 (상염색체 우성)';
+      if (subEl) subEl.textContent = '쌍꺼풀 대립 유전자(E)는 외꺼풀(e)에 대해 우성입니다';
+      content.innerHTML = `
+        <div class="legend-swatch-item">
+          <div class="legend-swatch-icon female white">●</div>
+          <div class="legend-swatch-info">
+            <strong>흰색 동그라미 (여성)</strong>
+            <span>쌍꺼풀 표현형 (유전자형: <strong>EE</strong> 또는 <strong>Ee</strong>)</span>
+          </div>
+        </div>
+        <div class="legend-swatch-item">
+          <div class="legend-swatch-icon male white">■</div>
+          <div class="legend-swatch-info">
+            <strong>흰색 네모 (남성)</strong>
+            <span>쌍꺼풀 표현형 (유전자형: <strong>EE</strong> 또는 <strong>Ee</strong>)</span>
+          </div>
+        </div>
+        <div class="legend-swatch-item">
+          <div class="legend-swatch-icon female gray">●</div>
+          <div class="legend-swatch-info">
+            <strong>회색 동그라미 (여성)</strong>
+            <span>외꺼풀 표현형 (유전자형: <strong>ee</strong> 열성 동형)</span>
+          </div>
+        </div>
+        <div class="legend-swatch-item">
+          <div class="legend-swatch-icon male gray">■</div>
+          <div class="legend-swatch-info">
+            <strong>회색 네모 (남성)</strong>
+            <span>외꺼풀 표현형 (유전자형: <strong>ee</strong> 열성 동형)</span>
+          </div>
+        </div>
+      `;
+    } else if (this.selectedTrait === 'blood_type') {
+      if (titleEl) titleEl.textContent = '📖 ABO 혈액형 유전 범례 (복대립)';
+      if (subEl) subEl.textContent = '대립 유전자 A, B는 우성이며 O에 대해 우성입니다';
+      content.innerHTML = `
+        <div class="legend-swatch-item">
+          <div class="legend-swatch-icon female white">●</div>
+          <div class="legend-swatch-info">
+            <strong>동그라미 노드 (여성)</strong>
+            <span>도형 내 표현형(A형, B형, AB형, O형) 문구가 중앙에 표기됩니다</span>
+          </div>
+        </div>
+        <div class="legend-swatch-item">
+          <div class="legend-swatch-icon male white">■</div>
+          <div class="legend-swatch-info">
+            <strong>네모 노드 (남성)</strong>
+            <span>도형 내 표현형(A형, B형, AB형, O형) 문구가 중앙에 표기됩니다</span>
+          </div>
+        </div>
+      `;
+    } else if (this.selectedTrait === 'color_blindness') {
+      if (titleEl) titleEl.textContent = '📖 적록 색맹 유전 범례 (반성 열성)';
+      if (subEl) subEl.textContent = '색맹 유전자(X\')는 성염색체 X 상의 열성 유전입니다';
+      content.innerHTML = `
+        <div class="legend-swatch-item">
+          <div class="legend-swatch-icon female white">●</div>
+          <div class="legend-swatch-info">
+            <strong>흰색 동그라미 (여성)</strong>
+            <span>정상 또는 보인자 표현형 (유전자형: <strong>XX</strong> 또는 <strong>XX'</strong>)</span>
+          </div>
+        </div>
+        <div class="legend-swatch-item">
+          <div class="legend-swatch-icon male white">■</div>
+          <div class="legend-swatch-info">
+            <strong>흰색 네모 (남성)</strong>
+            <span>정상 표현형 (유전자형: <strong>XY</strong>)</span>
+          </div>
+        </div>
+        <div class="legend-swatch-item">
+          <div class="legend-swatch-icon female gray">●</div>
+          <div class="legend-swatch-info">
+            <strong>회색 동그라미 (여성)</strong>
+            <span>적록 색맹 발현자 (유전자형: <strong>X'X'</strong>)</span>
+          </div>
+        </div>
+        <div class="legend-swatch-item">
+          <div class="legend-swatch-icon male gray">■</div>
+          <div class="legend-swatch-info">
+            <strong>회색 네모 (남성)</strong>
+            <span>적록 색맹 발현자 (유전자형: <strong>X'Y</strong>)</span>
+          </div>
+        </div>
+      `;
+    }
   }
 
   /**

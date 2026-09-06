@@ -79,9 +79,14 @@
           <span>정답: <strong id="val-quiz-score">0</strong> / <span id="val-quiz-total">8</span></span>
         </div>
 
+        <!-- Floating Legend Modal Trigger Button in Bottom-Right of Canvas Stage -->
+        <button id="btn-quiz-legend-trigger" class="btn-legend-modal-trigger" title="표현형 범례 보기">
+          <i class="fa-solid fa-book-open"></i> 📖 범례 보기
+        </button>
+
         <!-- Floating helper badge -->
         <div class="quiz-canvas-tip">
-          <i class="fa-solid fa-lightbulb"></i> 가계도 인물을 클릭하여 정답을 입력하세요. <b>(마우스 휠로 확대/축소 가능)</b>
+          <i class="fa-solid fa-lightbulb"></i> 가계도 인물을 클릭하여 정답을 입력하세요.
         </div>
       </div>
 
@@ -132,6 +137,35 @@
         <span>인물 수: <strong>8명</strong></span>
       </div>
     </footer>
+  </div>
+
+  <!-- Quiz Trait Legend Modal -->
+  <div id="quiz-legend-modal" class="modal-overlay hidden">
+    <div class="modal-card quiz-legend-card">
+      <button id="btn-legend-modal-x" class="quiz-modal-x-btn" title="닫기">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="quiz-modal-header legend-header">
+        <div class="modal-icon-glow">
+          <i class="fa-solid fa-book-open"></i>
+        </div>
+        <h2 id="legend-modal-title">📖 표현형 구분 범례</h2>
+        <p id="legend-modal-subtitle">가계도의 도형 및 색상별 표현형 안내</p>
+      </div>
+
+      <div class="modal-body quiz-legend-body">
+        <div id="legend-modal-content" class="legend-swatch-grid">
+          <!-- Dynamically populated based on active trait -->
+        </div>
+      </div>
+
+      <div class="modal-footer quiz-modal-footer">
+        <button id="btn-legend-modal-close" class="btn btn-primary btn-block">
+          <i class="fa-solid fa-check"></i> 확인 및 닫기
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Quiz Completion Celebration / Try-Again Modal -->
