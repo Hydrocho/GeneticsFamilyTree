@@ -195,6 +195,29 @@ class GeneticsQuizEngine {
       });
     }
 
+    // Secret Key Combination (Ctrl+E or Cmd+E) - Transports Quiz Pedigree to Editor (index.html)
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'e' || e.key === 'E')) {
+        e.preventDefault();
+        if (!this.currentQuiz) return;
+
+        const secretPedigreeData = {
+          nodes: this.currentQuiz.nodes,
+          connections: this.currentQuiz.connections,
+          legendTexts: this.currentQuiz.legendTexts,
+          questionMarkStyle: this.currentQuiz.questionMarkStyle || 'overlay',
+          timestamp: Date.now()
+        };
+
+        try {
+          localStorage.setItem('secret_edit_pedigree', JSON.stringify(secretPedigreeData));
+          window.location.href = 'index.html?secret_edit=1';
+        } catch (err) {
+          console.error('Failed to export secret quiz pedigree:', err);
+        }
+      }
+    });
+
     // Mouse Wheel Zoom & Mouse Drag Handlers (Desktop)
     const svgCanvas = document.getElementById('quiz-canvas');
     if (svgCanvas) {

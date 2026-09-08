@@ -66,8 +66,13 @@ class GeneticsPedigreeApp {
     this.bindEvents();
     this.drawGrid();
 
-    // Load initial sample template (Matching the user's uploaded picture!)
-    this.loadSampleTemplate();
+    // Check if imported via secret shortcut (Ctrl+E from Quiz)
+    const loadedSecret = this.checkSecretLoad();
+
+    // Load initial sample template only if not loaded from secret shortcut
+    if (!loadedSecret) {
+      this.loadSampleTemplate();
+    }
   }
 
   initElements() {
@@ -82,6 +87,8 @@ class GeneticsPedigreeApp {
     // Tool Buttons
     this.btnTemplateSample = document.getElementById('btn-template-sample');
     this.btnClear = document.getElementById('btn-clear');
+    this.btnReorderLabels = document.getElementById('btn-reorder-labels');
+    this.btnReorderLabelsSide = document.getElementById('btn-reorder-labels-side');
     this.btnUndo = document.getElementById('btn-undo');
     this.btnRedo = document.getElementById('btn-redo');
     this.btnSnapGrid = document.getElementById('btn-snap-grid');
@@ -205,6 +212,35 @@ class GeneticsPedigreeApp {
     }
   }
 
+  checkSecretLoad() {
+    try {
+      const secretDataStr = localStorage.getItem('secret_edit_pedigree');
+      if (secretDataStr) {
+        localStorage.removeItem('secret_edit_pedigree');
+        const data = JSON.parse(secretDataStr);
+        if (data && Array.isArray(data.nodes) && Array.isArray(data.connections)) {
+          this.nodes = data.nodes;
+          this.connections = data.connections;
+          if (data.legendTexts && Array.isArray(data.legendTexts)) {
+            this.legendTexts = data.legendTexts;
+          }
+          if (data.questionMarkStyle) {
+            this.questionMarkStyle = data.questionMarkStyle;
+          }
+          this.syncLegendInputs();
+          this.deselectAll();
+          this.renderAll();
+          this.saveHistory();
+          this.setStatus('비밀 모드: 퀴즈 가계도를 에디터로 불러왔습니다.');
+          return true;
+        }
+      }
+    } catch (e) {
+      console.error('Secret load error:', e);
+    }
+    return false;
+  }
+
   saveHistory() {
     const state = JSON.stringify({
       nodes: this.nodes,
@@ -280,6 +316,8 @@ class GeneticsPedigreeApp {
     // Toolbar & Top actions
     if (this.btnTemplateSample) this.btnTemplateSample.addEventListener('click', () => this.loadSampleTemplate());
     if (this.btnClear) this.btnClear.addEventListener('click', () => this.clearCanvas());
+    if (this.btnReorderLabels) this.btnReorderLabels.addEventListener('click', () => this.reorderNodeLabels());
+    if (this.btnReorderLabelsSide) this.btnReorderLabelsSide.addEventListener('click', () => this.reorderNodeLabels());
     if (this.btnUndo) this.btnUndo.addEventListener('click', () => this.undo());
     if (this.btnRedo) this.btnRedo.addEventListener('click', () => this.redo());
 
@@ -730,6 +768,52 @@ class GeneticsPedigreeApp {
       return this.getKoreanLabel(count);
     }
     return (count + 1).toString();
+  }
+
+  getLabelByIndex(index) {
+    if (this.labelNamingFormat === 'korean') {
+      return this.getKoreanLabel(index);
+    }
+    return (index + 1).toString();
+  }
+
+  reorderNodeLabels() {
+    if (!this.nodes || this.nodes.length === 0) {
+      this.setStatus('정렬할 인물이 없습니다.');
+      return;
+    }
+
+    this.saveHistory();
+
+    // 1. Sort nodes by position: top-to-bottom (Y), left-to-right (X)
+    // Tolerance threshold for grouping into the same horizontal line / row: 30px
+    const ROW_TOLERANCE = 30;
+
+    this.nodes.sort((a, b) => {
+      const yDiff = a.y - b.y;
+      if (Math.abs(yDiff) <= ROW_TOLERANCE) {
+        // Same row: sort left to right (X coordinate)
+        return a.x - b.x;
+      }
+      // Different rows: sort top to bottom (Y coordinate)
+      return yDiff;
+    });
+
+    // 2. Re-assign labels according to current naming format
+    this.nodes.forEach((node, index) => {
+      node.label = this.getLabelByIndex(index);
+    });
+
+    // 3. Update Inspector if a node is selected
+    if (this.selectedNodeId) {
+      const selectedNode = this.nodes.find(n => n.id === this.selectedNodeId);
+      if (selectedNode && this.inputNodeLabel) {
+        this.inputNodeLabel.value = selectedNode.label || '';
+      }
+    }
+
+    this.renderAll();
+    this.setStatus('위치(왼쪽 상단 순)에 따라 모든 인물의 이름표가 일괄 정렬되었습니다.');
   }
 
   // --- Node & Connection Operations ---
