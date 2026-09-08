@@ -1425,14 +1425,27 @@ class GeneticsQuizEngine {
 
   normalizeGenotype(str) {
     if (!str) return '';
-    let cleaned = str.trim().replace(/\s+/g, '');
+    let cleaned = String(str).trim().replace(/\s+/g, '');
+    if (cleaned === '?' || cleaned === '알 수 없음') return '?';
 
     // 표기 교정 (X^c -> X', X^r -> X', etc)
-    cleaned = cleaned.replace(/X\^c/gi, "X'").replace(/X\^r/gi, "X'").replace(/x'/gi, "X'").replace(/eE/g, 'Ee');
-    if (cleaned === 'oA' || cleaned === 'OA') return 'AO';
-    if (cleaned === 'oB' || cleaned === 'OB') return 'BO';
+    cleaned = cleaned.replace(/X\^c/gi, "X'").replace(/X\^r/gi, "X'").replace(/x'/gi, "X'");
+    if (cleaned === 'eE') return 'Ee';
+
+    // 혈액형 교정
+    if (cleaned === 'oA' || cleaned === 'OA' || cleaned === 'Ao') return 'AO';
+    if (cleaned === 'oB' || cleaned === 'OB' || cleaned === 'Bo') return 'BO';
     if (cleaned === 'BA') return 'AB';
     if (cleaned === 'oo') return 'OO';
+
+    if (cleaned.length === 2 && !cleaned.includes('X') && !cleaned.includes('Y')) {
+      const arr = cleaned.split('');
+      if (arr.every(c => c.toUpperCase() === 'E')) {
+        if (arr.includes('E') && arr.includes('e')) return 'Ee';
+        if (arr.every(c => c === 'E')) return 'EE';
+        if (arr.every(c => c === 'e')) return 'ee';
+      }
+    }
 
     return cleaned;
   }
@@ -1621,27 +1634,6 @@ class GeneticsQuizEngine {
     return validMap;
   }
 
-  normalizeGenotype(gt) {
-    if (!gt) return '';
-    let str = gt.trim().replace(/\s+/g, '');
-    if (str === '?') return '?';
-
-    if (str.length === 2 && !str.includes('X') && !str.includes('Y')) {
-      const arr = str.split('');
-      if (arr.join('').toUpperCase() === 'EE') {
-        if (arr.includes('E') && arr.includes('e')) return 'Ee';
-        if (arr[0] === 'E') return 'EE';
-        return 'ee';
-      }
-      if (arr.includes('O')) {
-        const other = arr.find(c => c !== 'O');
-        if (other) return other + 'O';
-      }
-      if (arr.includes('A') && arr.includes('B')) return 'AB';
-    }
-    return str;
-  }
-
   getGenotypeCandidates(traitType, gender) {
     if (traitType === 'double_eyelid') {
       return ['EE', 'Ee', 'ee', '?'];
@@ -1802,15 +1794,16 @@ class GeneticsQuizEngine {
     if (!userVal || !valids || valids.length === 0) return false;
     const normalizedUser = this.normalizeGenotype(userVal);
 
-    // 1. 원클릭 버튼 후보와 일치 (예: EE 또는 Ee)
-    if (valids.some(v => this.normalizeGenotype(v) === normalizedUser)) {
-      return true;
+    // 1. 가능 유전자형이 오직 1개로 과학적으로 확정된 경우 (valids.length === 1)
+    if (valids.length === 1) {
+      const targetGt = this.normalizeGenotype(valids[0]);
+      return normalizedUser === targetGt;
     }
 
-    // 2. 과학적으로 하나로 확정할 수 없는 경우 (valids.length > 1, 예: ['EE', 'Ee']),
-    // '?' (알 수 없음) 선택 시 정답 인정
-    if (valids.length > 1 && normalizedUser === '?') {
-      return true;
+    // 2. 가능 유전자형이 2개 이상이어서 하나로 단정/확정할 수 없는 경우 (valids.length > 1)
+    // 오직 '?' (알 수 없음) 선택 시에만 정답 인정! (개별 후보 찍기 선택 시 오답)
+    if (valids.length > 1) {
+      return normalizedUser === '?';
     }
 
     return false;
@@ -2045,7 +2038,7 @@ class GeneticsQuizEngine {
       } else {
         let noteHtml = '';
         if (valids.length > 1) {
-          noteHtml = `<br><small class="feedback-reason" style="color:#b91c1c; font-weight:600;">💡 참고: ${validsStr} 모두 과학적으로 가능하므로 <strong>${valids.join(', ')}</strong> 중 하나 또는 <strong>"알 수 없음(?)"</strong>을 선택해도 정답입니다.</small>`;
+          noteHtml = `<br><small class="feedback-reason" style="color:#b91c1c; font-weight:600;">💡 참고: ${validsStr} 모두 과학적으로 가능하므로 하나로 단정할 수 없으며, 개별 유전자형 선택 대신 반드시 <strong>"알 수 없음(?)"</strong>을 선택하셔야 정답으로 인정됩니다.</small>`;
         }
         feedbackHtml = `
           <div class="individual-feedback warning">
