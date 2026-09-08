@@ -201,11 +201,33 @@ class GeneticsQuizEngine {
         e.preventDefault();
         if (!this.currentQuiz) return;
 
+        const nodesCopy = JSON.parse(JSON.stringify(this.currentQuiz.nodes));
+
+        if (this.currentQuiz.traitType === 'blood_type') {
+          nodesCopy.forEach(node => {
+            const bloodType = node._bloodType || '';
+            if (bloodType) {
+              node.genotype = bloodType;
+            }
+          });
+        } else {
+          nodesCopy.forEach(node => {
+            if (node.genotype === '?' || !node.genotype) {
+              const validAnswer = this.currentQuiz.validAnswers ? this.currentQuiz.validAnswers[node.id] : null;
+              if (validAnswer) {
+                const answerStr = Array.isArray(validAnswer) ? validAnswer.join(', ') : String(validAnswer);
+                node.genotype = answerStr;
+              }
+            }
+          });
+        }
+
         const secretPedigreeData = {
-          nodes: this.currentQuiz.nodes,
+          nodes: nodesCopy,
           connections: this.currentQuiz.connections,
           legendTexts: this.currentQuiz.legendTexts,
           questionMarkStyle: this.currentQuiz.questionMarkStyle || 'overlay',
+          traitType: this.currentQuiz.traitType,
           timestamp: Date.now()
         };
 
