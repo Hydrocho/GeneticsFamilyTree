@@ -278,34 +278,36 @@ class GeneticsPedigreeApp {
 
   bindEvents() {
     // Toolbar & Top actions
-    this.btnTemplateSample.addEventListener('click', () => this.loadSampleTemplate());
-    this.btnClear.addEventListener('click', () => this.clearCanvas());
-    this.btnUndo.addEventListener('click', () => this.undo());
-    this.btnRedo.addEventListener('click', () => this.redo());
+    if (this.btnTemplateSample) this.btnTemplateSample.addEventListener('click', () => this.loadSampleTemplate());
+    if (this.btnClear) this.btnClear.addEventListener('click', () => this.clearCanvas());
+    if (this.btnUndo) this.btnUndo.addEventListener('click', () => this.undo());
+    if (this.btnRedo) this.btnRedo.addEventListener('click', () => this.redo());
 
-    this.btnSnapGrid.addEventListener('click', () => {
-      this.snapToGrid = !this.snapToGrid;
-      this.btnSnapGrid.classList.toggle('active', this.snapToGrid);
-      this.setStatus(`격자 맞춤: ${this.snapToGrid ? '켜짐' : '꺼짐'}`);
-    });
+    if (this.btnSnapGrid) {
+      this.btnSnapGrid.addEventListener('click', () => {
+        this.snapToGrid = !this.snapToGrid;
+        this.btnSnapGrid.classList.toggle('active', this.snapToGrid);
+        this.setStatus(`격자 맞춤: ${this.snapToGrid ? '켜짐' : '꺼짐'}`);
+      });
+    }
 
-    this.btnZoomIn.addEventListener('click', () => this.zoom(1.15));
-    this.btnZoomOut.addEventListener('click', () => this.zoom(0.85));
-    this.btnZoomReset.addEventListener('click', () => this.resetZoom());
+    if (this.btnZoomIn) this.btnZoomIn.addEventListener('click', () => this.zoom(1.15));
+    if (this.btnZoomOut) this.btnZoomOut.addEventListener('click', () => this.zoom(0.85));
+    if (this.btnZoomReset) this.btnZoomReset.addEventListener('click', () => this.resetZoom());
 
-    this.btnSaveJson.addEventListener('click', () => this.saveJSON());
-    this.btnLoadJson.addEventListener('change', (e) => this.loadJSON(e));
+    if (this.btnSaveJson) this.btnSaveJson.addEventListener('click', () => this.saveJSON());
+    if (this.btnLoadJson) this.btnLoadJson.addEventListener('change', (e) => this.loadJSON(e));
 
     // Left tools
-    this.toolAddMale.addEventListener('click', () => this.setMode('add-male'));
-    this.toolAddFemale.addEventListener('click', () => this.setMode('add-female'));
+    if (this.toolAddMale) this.toolAddMale.addEventListener('click', () => this.setMode('add-male'));
+    if (this.toolAddFemale) this.toolAddFemale.addEventListener('click', () => this.setMode('add-female'));
     if (this.toolAddQuestion) {
       this.toolAddQuestion.addEventListener('click', () => this.setMode('add-question'));
     }
-    this.toolConnectSpouse.addEventListener('click', () => this.setMode('connect-spouse'));
-    this.toolConnectChild.addEventListener('click', () => this.setMode('connect-child'));
-    this.toolSelectMode.addEventListener('click', () => this.setMode('select'));
-    this.btnCancelMode.addEventListener('click', () => this.setMode('select'));
+    if (this.toolConnectSpouse) this.toolConnectSpouse.addEventListener('click', () => this.setMode('connect-spouse'));
+    if (this.toolConnectChild) this.toolConnectChild.addEventListener('click', () => this.setMode('connect-child'));
+    if (this.toolSelectMode) this.toolSelectMode.addEventListener('click', () => this.setMode('select'));
+    if (this.btnCancelMode) this.btnCancelMode.addEventListener('click', () => this.setMode('select'));
 
     // Quick Question Button in Inspector
     if (this.btnQuickQuestion) {
@@ -335,15 +337,18 @@ class GeneticsPedigreeApp {
     }
 
     // Inline Genotype Editor
-    this.inlineClose.addEventListener('click', () => this.closeInlineEditor());
-    this.inlineSave.addEventListener('click', () => this.saveInlineGenotype());
-    this.inlineInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this.saveInlineGenotype();
-      if (e.key === 'Escape') this.closeInlineEditor();
-    });
+    if (this.inlineClose) this.inlineClose.addEventListener('click', () => this.closeInlineEditor());
+    if (this.inlineSave) this.inlineSave.addEventListener('click', () => this.saveInlineGenotype());
+    if (this.inlineInput) {
+      this.inlineInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') this.saveInlineGenotype();
+        if (e.key === 'Escape') this.closeInlineEditor();
+      });
+    }
 
     this.quickBtns.forEach(btn => {
       btn.addEventListener('click', () => {
+        if (!this.inlineInput) return;
         const textToInsert = btn.dataset.text;
         const startPos = this.inlineInput.selectionStart;
         const endPos = this.inlineInput.selectionEnd;
@@ -355,19 +360,31 @@ class GeneticsPedigreeApp {
     });
 
     // Inspector Events
-    this.inputNodeLabel.addEventListener('input', (e) => this.updateSelectedNodeProperty('label', e.target.value));
-    this.inputNodeGenotype.addEventListener('input', (e) => this.updateSelectedNodeProperty('genotype', e.target.value));
-    this.radioGenders.forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        if (e.target.checked) this.updateSelectedNodeProperty('gender', e.target.value);
+    if (this.inputNodeLabel) {
+      this.inputNodeLabel.addEventListener('input', (e) => this.updateSelectedNodeProperty('label', e.target.value));
+    }
+    if (this.inputNodeGenotype) {
+      this.inputNodeGenotype.addEventListener('input', (e) => this.updateSelectedNodeProperty('genotype', e.target.value));
+    }
+    if (this.radioGenders) {
+      this.radioGenders.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          if (e.target.checked) this.updateSelectedNodeProperty('gender', e.target.value);
+        });
       });
-    });
-    this.selectNodePhenotype.addEventListener('change', (e) => this.updateSelectedNodeProperty('phenotypeId', e.target.value));
+    }
+    if (this.selectNodePhenotype) {
+      this.selectNodePhenotype.addEventListener('change', (e) => this.updateSelectedNodeProperty('phenotypeId', e.target.value));
+    }
     if (this.selectNodeQuestionStyle) {
       this.selectNodeQuestionStyle.addEventListener('change', (e) => this.updateSelectedNodeProperty('questionStyle', e.target.value));
     }
-    this.btnDeleteSelected.addEventListener('click', () => this.deleteSelectedNode());
-    this.btnDeleteConnection.addEventListener('click', () => this.deleteSelectedConnection());
+    if (this.btnDeleteSelected) {
+      this.btnDeleteSelected.addEventListener('click', () => this.deleteSelectedNode());
+    }
+    if (this.btnDeleteConnection) {
+      this.btnDeleteConnection.addEventListener('click', () => this.deleteSelectedConnection());
+    }
 
     // Font Size & Naming & Gray Shade Inspector Events
     if (this.inputLabelFontSize) {
