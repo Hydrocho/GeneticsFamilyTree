@@ -1,0 +1,54 @@
+{
+  "seed": 20260909,
+  "perTrait": {
+    "double_eyelid": {
+      "quizzes": 10000,
+      "people": 82500,
+      "impossiblePedigrees": 0,
+      "invalidGeneratedGenotypes": 0,
+      "wrongAnswerSets": 0,
+      "quizzesWithWrongAnswers": 0,
+      "gradingMismatches": 0,
+      "patternCounts": {
+        "pattern-1": 2500,
+        "pattern-2": 2500,
+        "pattern-3": 2500,
+        "pattern-4": 2500
+      },
+      "causes": {}
+    },
+    "blood_type": {
+      "quizzes": 10000,
+      "people": 82500,
+      "impossiblePedigrees": 0,
+      "invalidGeneratedGenotypes": 0,
+      "wrongAnswerSets": 0,
+      "quizzesWithWrongAnswers": 0,
+      "gradingMismatches": 0,
+      "patternCounts": {
+        "pattern-1": 2500,
+        "pattern-2": 2500,
+        "pattern-3": 2500,
+        "pattern-4": 2500
+      },
+      "causes": {}
+    },
+    "color_blindness": {
+      "quizzes": 10000,
+      "people": 82500,
+      "impossiblePedigrees": 0,
+      "invalidGeneratedGenotypes": 0,
+      "wrongAnswerSets": 0,
+      "quizzesWithWrongAnswers": 0,
+      "gradingMismatches": 0,
+      "patternCounts": {
+        "pattern-1": 2500,
+        "pattern-2": 2500,
+        "pattern-3": 2500,
+        "pattern-4": 2500
+      },
+      "causes": {}
+    }
+  },
+  "examples": []
+}

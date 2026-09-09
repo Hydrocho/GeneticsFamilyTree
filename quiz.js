@@ -381,6 +381,7 @@ class GeneticsQuizEngine {
     }
     if (this.quizExplanationBox) {
       this.quizExplanationBox.classList.add('hidden');
+      this.quizExplanationBox.innerHTML = '';
     }
 
     // 1. 선택된 유전 형질에 따라 가계도 생성
@@ -1426,17 +1427,17 @@ class GeneticsQuizEngine {
   normalizeGenotype(str) {
     if (!str) return '';
     let cleaned = String(str).trim().replace(/\s+/g, '');
-    if (cleaned === '?' || cleaned === '알 수 없음') return '?';
+    if (cleaned === '?' || cleaned === '알수없음') return '?';
 
     // 표기 교정 (X^c -> X', X^r -> X', etc)
     cleaned = cleaned.replace(/X\^c/gi, "X'").replace(/X\^r/gi, "X'").replace(/x'/gi, "X'");
     if (cleaned === 'eE') return 'Ee';
 
-    // 혈액형 교정
-    if (cleaned === 'oA' || cleaned === 'OA' || cleaned === 'Ao') return 'AO';
-    if (cleaned === 'oB' || cleaned === 'OB' || cleaned === 'Bo') return 'BO';
-    if (cleaned === 'BA') return 'AB';
-    if (cleaned === 'oo') return 'OO';
+    // ABO 표기는 대소문자와 대립 유전자 순서를 통일한다.
+    // E/e처럼 대소문자가 유전적 의미를 갖는 다른 형질에는 적용하지 않는다.
+    if (/^[ABO]{2}$/i.test(cleaned)) {
+      return cleaned.toUpperCase().split('').sort().join('');
+    }
 
     if (cleaned.length === 2 && !cleaned.includes('X') && !cleaned.includes('Y')) {
       const arr = cleaned.split('');
@@ -1612,54 +1613,64 @@ class GeneticsQuizEngine {
   }
 
   deduceColorBlindnessValidGenotypes(nodes, connections) {
-    const validMap = {};
+    const candidates = {};
     nodes.forEach(n => {
       const isAffected = n.phenotypeId === 'trait-gray';
-
       if (n.gender === 'male') {
-        // 남성은 표현형만 보고 100% 확정 (XY 또는 X'Y)
-        validMap[n.id] = isAffected ? ["X'Y"] : ['XY'];
+        candidates[n.id] = isAffected ? ["X'Y"] : ['XY'];
       } else {
-        // 여성
-        if (isAffected) {
-          // 색맹 여성은 무조건 X'X'
-          validMap[n.id] = ["X'X'"];
-        } else {
-          // 정상 여성: XX 또는 XX' (보인자)
-          // 부모나 자녀에 의해 결정되는지 확인
-          let mustBeCarrier = false;
-
-          // 1. 아버지가 색맹(X'Y)이면 딸은 아버지에게 X'를 받으므로 무조건 보인자(XX')
-          connections.filter(c => c.type === 'child').forEach(cc => {
-            if (cc.childrenIds.includes(n.id)) {
-              const sc = connections.find(c => c.id === cc.spouseConnId);
-              if (sc) {
-                const father = nodes.find(p => p.id === sc.spouse1Id && p.gender === 'male') ||
-                               nodes.find(p => p.id === sc.spouse2Id && p.gender === 'male');
-                if (father && father.phenotypeId === 'trait-gray') {
-                  mustBeCarrier = true;
-                }
-              }
-            }
-          });
-
-          // 2. 자녀 중 색맹 아들(X'Y)이 있으면 어머니는 X' 보유하므로 무조건 보인자(XX')
-          const mySpouseConn = connections.find(c => c.type === 'spouse' && (c.spouse1Id === n.id || c.spouse2Id === n.id));
-          if (mySpouseConn) {
-            const myChildConn = connections.find(c => c.type === 'child' && c.spouseConnId === mySpouseConn.id);
-            if (myChildConn) {
-              const children = nodes.filter(ch => myChildConn.childrenIds.includes(ch.id));
-              if (children.some(ch => ch.gender === 'male' && ch.phenotypeId === 'trait-gray')) {
-                mustBeCarrier = true;
-              }
-            }
-          }
-
-          validMap[n.id] = mustBeCarrier ? ["XX'"] : ['XX', "XX'"];
-        }
+        candidates[n.id] = isAffected ? ["X'X'"] : ['XX', "XX'"];
       }
     });
 
+    const relations = [];
+    connections.filter(c => c.type === 'child').forEach(cc => {
+      const spouse = connections.find(c => c.id === cc.spouseConnId);
+      if (!spouse) return;
+      const parents = nodes.filter(n => n.id === spouse.spouse1Id || n.id === spouse.spouse2Id);
+      const father = parents.find(n => n.gender === 'male');
+      const mother = parents.find(n => n.gender === 'female');
+      if (!father || !mother) return;
+      nodes.filter(n => cc.childrenIds.includes(n.id)).forEach(child => {
+        relations.push({ father, mother, child });
+      });
+    });
+
+    // 최대 9명의 퀴즈에서 표현형에 맞는 모든 배치를 검사한다.
+    // 부모·자녀·조부모의 조건을 동시에 만족하는 배치에 등장한 후보만 정답으로 남긴다.
+    const assigned = {};
+    const supported = Object.fromEntries(nodes.map(n => [n.id, new Set()]));
+    const isCompatible = ({ father, mother, child }) => {
+      const fatherGt = assigned[father.id];
+      const motherGt = assigned[mother.id];
+      const childGt = assigned[child.id];
+      if (!fatherGt || !motherGt || !childGt) return true;
+      const fatherX = fatherGt === "X'Y" ? "X'" : 'X';
+      return motherGt.match(/X'?/g).some(motherX => {
+        const offspring = child.gender === 'male'
+          ? motherX + 'Y'
+          : [fatherX, motherX].sort().join('');
+        return offspring === childGt;
+      });
+    };
+    const search = (index) => {
+      if (index === nodes.length) {
+        nodes.forEach(n => supported[n.id].add(assigned[n.id]));
+        return;
+      }
+      const node = nodes[index];
+      for (const genotype of candidates[node.id]) {
+        assigned[node.id] = genotype;
+        if (relations.every(isCompatible)) search(index + 1);
+      }
+      delete assigned[node.id];
+    };
+    search(0);
+
+    const validMap = {};
+    nodes.forEach(n => {
+      validMap[n.id] = candidates[n.id].filter(gt => supported[n.id].has(gt));
+    });
     return validMap;
   }
 
@@ -1695,16 +1706,20 @@ class GeneticsQuizEngine {
       } else if (traitType === 'blood_type') {
         this.quizInfoDesc.innerHTML = `
           <strong>[ABO 혈액형 유전 법칙]</strong><br>
-          • 대립 유전자 <b>A</b>와 <b>B</b>는 우열 관계가 없고(우성), <b>O</b>에 대해서는 우성입니다.<br>
+          • 대립 유전자 <b>A</b>와 <b>B</b>는 공동 우성이며, <b>O</b>에 대해서는 우성입니다.<br>
           • A형(AA, AO), B형(BB, BO), AB형(AB), O형(OO)<br>
-          • 가계도의 각 인물의 표현형(혈액형)을 보고 유전자형을 정확히 추론하세요.
+          • 가계도의 각 인물의 표현형(혈액형)을 보고 유전자형을 정확히 추론하세요.<br>
+          • 가능한 유전자형이 여러 개이면 개별 후보 대신 <b>? (알 수 없음)</b>을 선택해야 정답입니다.<br>
+          • 선택 버튼은 즉시 채점합니다. 직접 입력은 <b>Enter</b>를 누르거나 입력란을 벗어나면 채점합니다.
         `;
       } else if (traitType === 'color_blindness') {
         this.quizInfoDesc.innerHTML = `
           <strong>[적록 색맹 반성 유전 법칙]</strong><br>
           • 적록 색맹 유전자(<b>X'</b>)는 성염색체 X에 있는 열성 유전입니다.<br>
           • 남성: XY(정상), X'Y(색맹) / 여성: XX(정상), XX'(보인자), X'X'(색맹)<br>
-          • 회색 노드는 색맹 발현자, 흰색 노드는 정상(또는 보인자) 표현형입니다.
+          • 회색 노드는 색맹 발현자, 흰색 노드는 정상(또는 보인자) 표현형입니다.<br>
+          • 가능한 유전자형이 여러 개이면 <b>? (알 수 없음)</b>을 선택해야 정답입니다.<br>
+          • 선택 버튼은 즉시 채점합니다. 직접 입력은 <b>Enter</b>를 누르거나 입력란을 벗어나면 채점합니다.
         `;
       }
     }
@@ -1767,12 +1782,14 @@ class GeneticsQuizEngine {
       input.addEventListener('input', (e) => {
         const val = e.target.value;
         this.userAnswers[node.id] = val;
-        if (val === '?' || val.length >= 2) {
+        if (traitType === 'double_eyelid' && (val === '?' || val.length >= 2)) {
           syncAndCheck(val);
         } else {
           this.renderStandaloneCanvas(this.currentQuiz);
         }
       });
+
+      if (traitType !== 'double_eyelid') this.bindGenotypeInputSubmission(input, node.id);
 
       // Quick candidate preset buttons for this node
       const btnGroup = document.createElement('div');
@@ -1940,7 +1957,7 @@ class GeneticsQuizEngine {
           if (valids.includes("X'X'")) {
             reason = '색맹 여성이므로 X\'X\' 입니다.';
           } else if (valids.length === 1 && valids[0] === "XX'") {
-            reason = '정상 표현형이나 아버지가 색맹(X\'Y)이거나 자녀에 색맹 아들이 있어 보인자 XX\' 입니다.';
+            reason = '정상 표현형이지만 가계도 전체의 부모·자녀 관계에서 X\'의 전달이 확인되어 보인자 XX\'로 확정됩니다.';
           } else {
             reason = '정상 표현형이며 색맹 전달 인자가 확인되지 않아 XX와 XX\' 모두 가능합니다.';
           }
@@ -2045,7 +2062,7 @@ class GeneticsQuizEngine {
         else if (valids.length === 1 && valids[0] === 'Ee') reason = '쌍꺼풀(흰색)이지만 열성(ee, 회색) 자녀/부모가 있어 Ee 입니다.';
         else reason = '쌍꺼풀(흰색)이며 열성 인자가 없어 EE와 Ee 모두 가능합니다.';
       } else if (traitType === 'blood_type') {
-        reason = `표현형(${node._bloodType})에 의해 가능 유전자형은 ${validsStr} 입니다.`;
+        reason = `표현형(${node._bloodType}) 및 부모-자녀 혈액형 전달 관계에 의해 가능 유전자형은 ${validsStr} 입니다.`;
       } else if (traitType === 'color_blindness') {
         if (node.gender === 'male') reason = node.phenotypeId === 'trait-gray' ? "색맹 남성이므로 X'Y 입니다." : "정상 남성이므로 XY 입니다.";
         else reason = valids.includes("X'X'") ? "색맹 여성이므로 X'X' 입니다." : (valids.length === 1 ? "보인자 XX' 입니다." : "XX와 XX' 모두 가능합니다.");
@@ -2155,10 +2172,11 @@ class GeneticsQuizEngine {
         }
         this.renderStandaloneCanvas(this.currentQuiz);
 
-        if (val === '?' || val.length >= 2) {
+        if (traitType === 'double_eyelid' && (val === '?' || val.length >= 2)) {
           this.checkIndividualAnswer(node.id);
         }
       });
+      if (traitType !== 'double_eyelid') this.bindGenotypeInputSubmission(inputEl, node.id);
     }
 
     if (clearEl) {
@@ -2173,6 +2191,26 @@ class GeneticsQuizEngine {
         const val = btn.getAttribute('data-value');
         handleSelectGenotype(val);
       });
+    });
+  }
+
+  bindGenotypeInputSubmission(input, nodeId) {
+    const submit = () => {
+      if (!input.value.trim() || this.individualResults[nodeId]) return;
+      this.userAnswers[nodeId] = input.value;
+      this.checkIndividualAnswer(nodeId);
+    };
+    input.addEventListener('blur', (event) => {
+      // 선택/지우기 버튼으로 이동하면 해당 버튼이 입력을 처리하게 한다.
+      // change에서 먼저 채점하면 카드가 교체되어 뒤이은 click이 사라진다.
+      if (event.relatedTarget?.closest('.btn-genotype-preset, .btn-allele-sm')) return;
+      submit();
+    });
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.isComposing) {
+        event.preventDefault();
+        submit();
+      }
     });
   }
 

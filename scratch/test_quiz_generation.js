@@ -83,4 +83,5 @@ if (invalidCount === 0) {
   console.log(`✅ ALL 100 ABO BLOOD TYPE QUIZZES GENERATED & VERIFIED SUCCESSFULLY WITH 0 ERRORS!`);
 } else {
   console.error(`❌ FOUND ${invalidCount} ERRORS IN QUIZ GENERATION!`);
+  process.exitCode = 1;
 }
