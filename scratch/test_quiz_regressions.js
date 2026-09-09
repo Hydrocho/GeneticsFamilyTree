@@ -88,6 +88,23 @@ test('switching from typed input to a preset or clear does not submit unfinished
   assert.equal(engine.individualResults.p.isCorrect, true);
 });
 
+test('submitting on blur preserves the person selected next', () => {
+  const { engine, element } = setup();
+  engine.currentQuiz = {
+    traitType: 'color_blindness', nodes: [{ id: 'p' }, { id: 'q' }],
+    validAnswers: { p: ['XY'], q: ['XY'] }
+  };
+  engine.selectedPersonId = 'p';
+  const input = element();
+  engine.bindGenotypeInputSubmission(input, 'p');
+  input.value = 'XY';
+  input.fire('blur', { relatedTarget: { closest(selector) {
+    return selector === '[data-quiz-person-id]' ? { getAttribute() { return 'q'; } } : null;
+  } } });
+  assert.equal(engine.individualResults.p.isCorrect, true);
+  assert.equal(engine.selectedPersonId, 'q');
+});
+
 for (const surface of ['card', 'grid']) {
   for (const submission of ['enter', 'blur']) {
     test(`ABO ${surface} waits for ${submission} before grading typed answers`, () => {

@@ -38,6 +38,9 @@
       </div>
 
       <div class="top-tools">
+        <button id="btn-quiz-stats" type="button" class="btn btn-outline" aria-haspopup="dialog">
+          <i class="fa-solid fa-chart-column" aria-hidden="true"></i> 오늘의 풀이 통계
+        </button>
         <button id="btn-quiz-generate" class="btn btn-primary btn-quiz-glow">
           <i class="fa-solid fa-rotate"></i> 🎲 새로운 문제 생성
         </button>
@@ -205,10 +208,26 @@
         <button id="btn-modal-close" class="btn btn-outline btn-block">
           <i class="fa-solid fa-xmark"></i> 닫기 (가계도 해설 확인)
         </button>
+        <button id="btn-modal-stats" type="button" class="btn btn-outline btn-block" aria-haspopup="dialog">
+          <i class="fa-solid fa-chart-column" aria-hidden="true"></i> 오늘의 풀이 통계
+        </button>
       </div>
     </div>
   </div>
 
+  <dialog id="quiz-stats-modal" class="quiz-stats-dialog" aria-labelledby="quiz-stats-title" aria-describedby="quiz-stats-date">
+    <header class="stats-header">
+      <div>
+        <span class="stats-eyebrow">MY LEARNING TODAY</span>
+        <h2 id="quiz-stats-title">오늘의 풀이 통계</h2>
+        <p id="quiz-stats-date"></p>
+      </div>
+      <button type="button" class="stats-close" data-close-stats aria-label="통계 닫기" autofocus>×</button>
+    </header>
+    <div id="quiz-stats-content" class="stats-content" aria-live="polite"></div>
+    <footer class="stats-footer"><button type="button" class="btn btn-primary" data-close-stats>확인</button></footer>
+  </dialog>
+  <script src="quiz-stats.js"></script>
   <script src="quiz.js"></script>
 </body>
 </html>

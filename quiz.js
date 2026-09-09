@@ -10,8 +10,10 @@ class GeneticsQuizEngine {
   constructor() {
     this.currentQuiz = null;
     this.userAnswers = {};
+    this.dailyStats = typeof QuizDailyStats !== 'undefined' ? new QuizDailyStats() : null;
     this.initUIElements();
     this.bindEvents();
+    if (this.dailyStats) this.statsModal = new QuizStatsModal(this.dailyStats);
     this.generateNewQuiz();
   }
 
@@ -371,6 +373,8 @@ class GeneticsQuizEngine {
    * 새로운 가계도 퀴즈 생성
    */
   generateNewQuiz() {
+    this.statsQuizId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     this.userAnswers = {};
     this.individualResults = {};
     const completionModal = document.getElementById('quiz-completion-modal');
@@ -574,6 +578,8 @@ class GeneticsQuizEngine {
       const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       g.setAttribute('class', `quiz-node-g ${n.id === this.selectedPersonId ? 'selected' : ''}`);
       g.setAttribute('cursor', 'pointer');
+      g.setAttribute('tabindex', '0');
+      g.setAttribute('data-quiz-person-id', n.id);
       g.addEventListener('click', () => {
         this.selectedPersonId = n.id;
         this.renderPersonChips();
@@ -1878,6 +1884,7 @@ class GeneticsQuizEngine {
         isCorrect,
         userVal
       };
+      this.recordQuizAnswer(node.id, userVal, isCorrect);
 
       if (itemEl) {
         itemEl.classList.remove('correct', 'incorrect');
@@ -1994,6 +2001,7 @@ class GeneticsQuizEngine {
     nodes.forEach(node => {
       const chip = document.createElement('button');
       chip.type = 'button';
+      chip.setAttribute('data-quiz-person-id', node.id);
       chip.className = `person-chip ${node.id === this.selectedPersonId ? 'active' : ''}`;
 
       const res = this.individualResults[node.id];
@@ -2204,6 +2212,12 @@ class GeneticsQuizEngine {
       // 선택/지우기 버튼으로 이동하면 해당 버튼이 입력을 처리하게 한다.
       // change에서 먼저 채점하면 카드가 교체되어 뒤이은 click이 사라진다.
       if (event.relatedTarget?.closest('.btn-genotype-preset, .btn-allele-sm')) return;
+      const nextPersonId = event.relatedTarget?.closest('[data-quiz-person-id]')?.getAttribute('data-quiz-person-id');
+      if (nextPersonId && input.value.trim() && this.currentQuiz?.nodes.some(n => n.id === nextPersonId)) {
+        // 채점 중 인물 목록을 다시 그려도 사용자가 방금 선택한 인물을 유지한다.
+        this.selectedPersonId = nextPersonId;
+        if (this.isEditorApp()) window.app.selectNode(nextPersonId);
+      }
       submit();
     });
     input.addEventListener('keydown', (event) => {
@@ -2227,6 +2241,7 @@ class GeneticsQuizEngine {
       isCorrect,
       userVal
     };
+    this.recordQuizAnswer(nodeId, userVal, isCorrect);
 
     this.updateScoreBadge();
     this.renderPersonChips();
@@ -2242,6 +2257,17 @@ class GeneticsQuizEngine {
         this.showCompletionModal();
       }, 350);
     }
+  }
+
+  recordQuizAnswer(nodeId, userVal, isCorrect) {
+    if (!this.dailyStats || !this.currentQuiz || !String(userVal).trim()) return;
+    this.dailyStats.recordAnswer({
+      quizId: this.statsQuizId,
+      nodeId,
+      traitType: this.currentQuiz.traitType,
+      totalPeople: this.currentQuiz.nodes.length,
+      isCorrect
+    });
   }
 
   showCompletionModal() {
