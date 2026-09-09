@@ -162,6 +162,15 @@ body, html {
   background-color: var(--success-hover);
 }
 
+.btn-stats {
+  background-color: #0D9488;
+  color: #FFFFFF;
+}
+
+.btn-stats:hover:not(:disabled) {
+  background-color: #0F766E;
+}
+
 .btn-outline {
   background-color: var(--bg-panel);
   border-color: var(--border-color);
@@ -2388,6 +2397,5 @@ body, html {
     font-size: 28px;
   }
 }
-
 
 
