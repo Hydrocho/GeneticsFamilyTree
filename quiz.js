@@ -1506,78 +1506,107 @@ class GeneticsQuizEngine {
 
   deduceBloodTypeValidGenotypes(nodes, connections) {
     const validMap = {};
+
+    // 1. 초기 가능 유전자형 설정 (표현형 기준)
     nodes.forEach(n => {
       const blood = n._bloodType;
-      const trueGt = n._trueGenotype;
-
       if (blood === 'O형') {
         validMap[n.id] = ['OO'];
       } else if (blood === 'AB형') {
         validMap[n.id] = ['AB'];
       } else if (blood === 'A형') {
-        // AA 또는 AO
-        // 자녀나 부모 중 O형(OO)이나 B형/AB형에서 O를 물려준 경우 등의 조건
-        let mustBeAO = false;
-
-        // 자녀 검사: 자녀 중 O형(OO)이나 B형(BO)이 있으면 반드시 O 보유
-        const mySpouseConn = connections.find(c => c.type === 'spouse' && (c.spouse1Id === n.id || c.spouse2Id === n.id));
-        if (mySpouseConn) {
-          const myChildConn = connections.find(c => c.type === 'child' && c.spouseConnId === mySpouseConn.id);
-          if (myChildConn) {
-            const children = nodes.filter(ch => myChildConn.childrenIds.includes(ch.id));
-            if (children.some(ch => ch._bloodType === 'O형' || ch._bloodType === 'B형')) {
-              mustBeAO = true;
-            }
-          }
-        }
-
-        // 부모 검사: 부모 중 O형(OO)이 있으면 반드시 O 받음
-        connections.filter(c => c.type === 'child').forEach(cc => {
-          if (cc.childrenIds.includes(n.id)) {
-            const sc = connections.find(c => c.id === cc.spouseConnId);
-            if (sc) {
-              const p1 = nodes.find(p => p.id === sc.spouse1Id);
-              const p2 = nodes.find(p => p.id === sc.spouse2Id);
-              if ((p1 && p1._bloodType === 'O형') || (p2 && p2._bloodType === 'O형')) {
-                mustBeAO = true;
-              }
-            }
-          }
-        });
-
-        validMap[n.id] = mustBeAO ? ['AO'] : ['AA', 'AO'];
-
+        validMap[n.id] = ['AA', 'AO'];
       } else if (blood === 'B형') {
-        // BB 또는 BO
-        let mustBeBO = false;
-
-        const mySpouseConn = connections.find(c => c.type === 'spouse' && (c.spouse1Id === n.id || c.spouse2Id === n.id));
-        if (mySpouseConn) {
-          const myChildConn = connections.find(c => c.type === 'child' && c.spouseConnId === mySpouseConn.id);
-          if (myChildConn) {
-            const children = nodes.filter(ch => myChildConn.childrenIds.includes(ch.id));
-            if (children.some(ch => ch._bloodType === 'O형' || ch._bloodType === 'A형')) {
-              mustBeBO = true;
-            }
-          }
-        }
-
-        connections.filter(c => c.type === 'child').forEach(cc => {
-          if (cc.childrenIds.includes(n.id)) {
-            const sc = connections.find(c => c.id === cc.spouseConnId);
-            if (sc) {
-              const p1 = nodes.find(p => p.id === sc.spouse1Id);
-              const p2 = nodes.find(p => p.id === sc.spouse2Id);
-              if ((p1 && p1._bloodType === 'O형') || (p2 && p2._bloodType === 'O형')) {
-                mustBeBO = true;
-              }
-            }
-          }
-        });
-
-        validMap[n.id] = mustBeBO ? ['BO'] : ['BB', 'BO'];
+        validMap[n.id] = ['BB', 'BO'];
+      } else {
+        validMap[n.id] = ['AA', 'AO', 'BB', 'BO', 'AB', 'OO'];
       }
     });
+
+    // 멘델 복대립 유전 가능 여부 판별 헬퍼
+    const canProduce = (g1, g2, gC) => {
+      const a1List = g1.split('');
+      const a2List = g2.split('');
+      for (const a1 of a1List) {
+        for (const a2 of a2List) {
+          const pair = [a1, a2].sort();
+          let offspringGt = pair.join('');
+          if (pair.includes('O') && pair[0] === 'O' && pair[1] !== 'O') {
+            offspringGt = pair[1] + 'O';
+          }
+          if (offspringGt === gC) return true;
+        }
+      }
+      return false;
+    };
+
+    // 부모-자녀 가계 그룹 추출
+    const families = [];
+    const childConns = connections.filter(c => c.type === 'child');
+    childConns.forEach(cc => {
+      const sc = connections.find(c => c.id === cc.spouseConnId);
+      if (sc && cc.childrenIds && cc.childrenIds.length > 0) {
+        families.push({
+          p1Id: sc.spouse1Id,
+          p2Id: sc.spouse2Id,
+          childrenIds: cc.childrenIds
+        });
+      }
+    });
+
+    // 제약 조건 전파 (최대 10회 반복 또는 수렴 시 종료)
+    let changed = true;
+    let iteration = 0;
+    while (changed && iteration < 10) {
+      changed = false;
+      iteration++;
+
+      families.forEach(fam => {
+        const p1Id = fam.p1Id;
+        const p2Id = fam.p2Id;
+        const childrenIds = fam.childrenIds;
+
+        const g1Set = validMap[p1Id] || [];
+        const g2Set = validMap[p2Id] || [];
+
+        // 1. 자녀의 유전자형 후보 소거 (부모 조합에서 나올 수 없는 경우 제거)
+        childrenIds.forEach(chId => {
+          const gCSet = validMap[chId] || [];
+          const newGCSet = gCSet.filter(gC => {
+            return g1Set.some(g1 => g2Set.some(g2 => canProduce(g1, g2, gC)));
+          });
+          if (newGCSet.length !== gCSet.length) {
+            validMap[chId] = newGCSet;
+            changed = true;
+          }
+        });
+
+        const currentChildrenSets = childrenIds.map(chId => validMap[chId] || []);
+
+        // 2. 부모1(p1) 유전자형 후보 소거 (자녀들을 만들어낼 수 없는 경우 제거)
+        const newG1Set = g1Set.filter(g1 => {
+          return currentChildrenSets.every(gCSet => {
+            return gCSet.some(gC => g2Set.some(g2 => canProduce(g1, g2, gC)));
+          });
+        });
+        if (newG1Set.length !== g1Set.length) {
+          validMap[p1Id] = newG1Set;
+          changed = true;
+        }
+
+        // 3. 부모2(p2) 유전자형 후보 소거 (자녀들을 만들어낼 수 없는 경우 제거)
+        const updatedG1Set = validMap[p1Id] || [];
+        const newG2Set = g2Set.filter(g2 => {
+          return currentChildrenSets.every(gCSet => {
+            return gCSet.some(gC => updatedG1Set.some(g1 => canProduce(g1, g2, gC)));
+          });
+        });
+        if (newG2Set.length !== g2Set.length) {
+          validMap[p2Id] = newG2Set;
+          changed = true;
+        }
+      });
+    }
 
     return validMap;
   }
